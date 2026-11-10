@@ -1,0 +1,41 @@
+{
+  "rules": {
+    ".read": false,
+    ".write": false,
+    "rutas": {
+      ".read": "auth != null",
+      "$rutaId": {
+        ".write": false
+      }
+    },
+    "paradas": {
+      ".read": "auth != null",
+      ".write": false
+    },
+    "vehiculos_activos": {
+      ".read": "auth != null",
+      "$vehiculoId": {
+        ".write": "auth != null && auth.uid === $vehiculoId",
+        ".validate": "newData.hasChildren(['lat', 'lng', 'timestamp_ultima_actualizacion', 'ruta_activa', 'velocidad_actual', 'en_servicio'])",
+        "lat": { ".validate": "newData.isNumber()" },
+        "lng": { ".validate": "newData.isNumber()" },
+        "timestamp_ultima_actualizacion": { ".validate": "newData.isNumber()" },
+        "ruta_activa": { ".validate": "newData.isString()" },
+        "velocidad_actual": { ".validate": "newData.isNumber() && newData.val() >= 0" },
+        "en_servicio": { ".validate": "newData.isBoolean()" }
+      }
+    },
+    "usuarios": {
+      "$uid": {
+        ".read": "auth != null && auth.uid === $uid",
+        ".write": "auth != null && auth.uid === $uid"
+      }
+    },
+    "metricas": {
+      ".read": false,
+      "$metricaId": {
+        ".write": "auth != null && !data.exists()"
+      }
+    }
+  }
+}
