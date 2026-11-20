@@ -6,7 +6,7 @@ import { Alert, ScrollView, StyleSheet, Text, View } from 'react-native';
 import { Badge } from '@/components/Badge';
 import { Button } from '@/components/Button';
 import { Screen } from '@/components/Screen';
-import { PILOT_ROUTE_ID } from '@/constants/config';
+import { PILOT_ROUTE_ID, USE_MOCK } from '@/constants/config';
 import { colors, font, radius, spacing } from '@/constants/theme';
 import { PLACEHOLDER_ROUTE } from '@/data/seed';
 import { clearFieldLogs, exportFieldLogCsv, listPings } from '@/lib/fieldLog';
@@ -70,30 +70,39 @@ export default function ShiftScreen() {
     }
     setWorking(true);
     try {
-      const permissions = await requestLocationPermissions();
-      if (!permissions.background) {
-        Alert.alert(
-          'Permiso de ubicación en segundo plano',
-          'Para transmitir con la pantalla apagada necesitas otorgar el permiso "Permitir todo el tiempo" en los ajustes de la aplicación.',
-        );
-        return;
+      if (!USE_MOCK) {
+        const permissions = await requestLocationPermissions();
+        if (!permissions.background) {
+          Alert.alert(
+            'Permiso de ubicación en segundo plano',
+            'Para transmitir con la pantalla apagada necesitas otorgar el permiso "Permitir todo el tiempo" en los ajustes de la aplicación.',
+          );
+          return;
+        }
       }
       const session = { vehiculoId: uid, rutaId: PILOT_ROUTE_ID };
       await beginShift(
         {
-          getCurrentPosition: async () => {
-            const position = await Location.getCurrentPositionAsync({
-              accuracy: Location.Accuracy.High,
-            });
-            return {
-              lat: position.coords.latitude,
-              lng: position.coords.longitude,
-              timestamp: position.timestamp || Date.now(),
-              speed: position.coords.speed,
-            };
-          },
+          getCurrentPosition: USE_MOCK
+            ? async () => ({
+                lat: PLACEHOLDER_ROUTE.polyline[0].latitude,
+                lng: PLACEHOLDER_ROUTE.polyline[0].longitude,
+                timestamp: Date.now(),
+                speed: 0,
+              })
+            : async () => {
+                const position = await Location.getCurrentPositionAsync({
+                  accuracy: Location.Accuracy.High,
+                });
+                return {
+                  lat: position.coords.latitude,
+                  lng: position.coords.longitude,
+                  timestamp: position.timestamp || Date.now(),
+                  speed: position.coords.speed,
+                };
+              },
           publishVehicle: (vehiculo) => getRepository().publishVehicle(vehiculo),
-          startTracking,
+          startTracking: USE_MOCK ? async () => undefined : startTracking,
         },
         session,
       );
@@ -113,7 +122,7 @@ export default function ShiftScreen() {
     try {
       await endShift(
         {
-          stopTracking,
+          stopTracking: USE_MOCK ? async () => undefined : stopTracking,
           setService: (vehiculoId, enServicio) =>
             getRepository().setService(vehiculoId, enServicio),
         },
@@ -194,6 +203,11 @@ export default function ShiftScreen() {
               ? 'La ubicación se está compartiendo en segundo plano. Puedes bloquear el teléfono.'
               : 'Inicia el turno para compartir tu ubicación con los pasajeros.'}
           </Text>
+          {USE_MOCK ? (
+            <Text style={styles.muted}>
+              Modo simulado: la buseta avanza sola por la ruta, no se usa el GPS del teléfono.
+            </Text>
+          ) : null}
         </View>
 
         <View style={styles.card}>

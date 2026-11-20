@@ -23,7 +23,7 @@ export const CONSENT_VERSION = '2026-01';
 export const USE_MOCK = process.env.EXPO_PUBLIC_USE_MOCK !== 'false';
 
 export const MAP_STYLE_URL =
-  process.env.EXPO_PUBLIC_MAP_STYLE_URL ?? 'https://demotiles.maplibre.org/style.json';
+  process.env.EXPO_PUBLIC_MAP_STYLE_URL ?? 'https://tiles.openfreemap.org/styles/liberty';
 
 export const STORAGE_KEYS = {
   trackingSession: 'tracking_session',

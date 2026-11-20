@@ -21,11 +21,14 @@ Firebase (Auth anónima + Realtime Database), expo-location + expo-task-manager,
 
 ## Puesta en marcha (modo simulado)
 
-El modo simulado no necesita Firebase: un vehículo recorre la ruta piloto cada
-3 segundos. Con el modo simulado activo (cualquier valor distinto de `false` en
-`EXPO_PUBLIC_USE_MOCK`) los plugins de React Native Firebase se omiten
-automáticamente en la configuración de Expo, por lo que **no necesitas
-`google-services.json` ni `GoogleService-Info.plist`** para compilar.
+El modo simulado no necesita Firebase: tres busetas recorren la ruta piloto cada
+3 segundos. La buseta `demo-buseta-3` pierde la señal 45 s cada 3 min para que se
+vea el estado **desactualizado** durante más tiempo que el umbral de 30 s. En
+este modo, el conductor **no** usa el GPS del teléfono: al iniciar el turno la
+buseta se mueve sola por la ruta. Con el modo simulado activo (cualquier valor
+distinto de `false` en `EXPO_PUBLIC_USE_MOCK`) los plugins de React Native
+Firebase se omiten automáticamente en la configuración de Expo, por lo que **no
+necesitas `google-services.json` ni `GoogleService-Info.plist`** para compilar.
 
 ```bash
 npm install
@@ -183,7 +186,7 @@ y pruebas de ETA de este dispositivo; no borra las mediciones de espera.
 ## Limitaciones conocidas
 
 - La ruta y las paradas son **placeholder** hasta cargar el trazado real.
-- El estilo de mapa por defecto es el demo público de MapLibre; para producción
-  usa un proveedor de tiles vectoriales.
+- El estilo de mapa por defecto es **OpenFreeMap Liberty** (OpenStreetMap, sin
+  API key); puedes cambiarlo con `EXPO_PUBLIC_MAP_STYLE_URL`.
 - Las métricas se guardan localmente en SQLite; el CSV se comparte desde el
   dispositivo y no incluye datos personales.
