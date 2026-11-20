@@ -9,6 +9,7 @@ import { snapToRoute } from './geo';
 
 export type StopEta = {
   parada: Parada;
+  vehiculoId: string | null;
   distanciaRestanteM: number;
   etaSegundos: number | null;
   pasada: boolean;
@@ -60,8 +61,70 @@ export function computeStopEtas(
         ? null
         : estimateEtaSeconds(distanciaRestanteM, vehiculo.velocidad_actual);
 
-      return { parada, distanciaRestanteM, etaSegundos, pasada, desactualizado: stale };
+      return {
+        parada,
+        vehiculoId: vehiculo.vehiculo_id,
+        distanciaRestanteM,
+        etaSegundos,
+        pasada,
+        desactualizado: stale,
+      };
     });
+}
+
+export function computeBestStopEtas(
+  ruta: Ruta,
+  paradas: Parada[],
+  vehiculos: VehiculoActivo[],
+  now = Date.now(),
+): StopEta[] {
+  const candidates = vehiculos.filter(
+    (vehiculo) => vehiculo.en_servicio && vehiculo.ruta_activa === ruta.id,
+  );
+  if (candidates.length === 0) {
+    return [];
+  }
+
+  const etasPorVehiculo = candidates.map((vehiculo) =>
+    computeStopEtas(ruta, paradas, vehiculo, now),
+  );
+
+  return [...paradas]
+    .sort((a, b) => a.orden - b.orden)
+    .map((parada) => {
+      const resultados = etasPorVehiculo
+        .map((etas) => etas.find((eta) => eta.parada.id === parada.id))
+        .filter((eta): eta is StopEta => eta != null);
+
+      const disponibles = resultados.filter((eta) => !eta.desactualizado && !eta.pasada);
+      if (disponibles.length > 0) {
+        return disponibles.reduce((best, eta) =>
+          eta.distanciaRestanteM < best.distanciaRestanteM ? eta : best,
+        );
+      }
+
+      const desactualizados = resultados.filter(
+        (eta) => eta.desactualizado && !eta.pasada,
+      );
+      if (desactualizados.length > 0) {
+        return desactualizados.reduce((best, eta) =>
+          eta.distanciaRestanteM < best.distanciaRestanteM ? eta : best,
+        );
+      }
+
+      const pasada = resultados.find((eta) => eta.pasada);
+      if (pasada) {
+        return {
+          ...pasada,
+          distanciaRestanteM: 0,
+          etaSegundos: null,
+          desactualizado: resultados.every((eta) => eta.desactualizado),
+        };
+      }
+
+      return null;
+    })
+    .filter((eta): eta is StopEta => eta != null);
 }
 
 export function formatEta(seconds: number | null): string {

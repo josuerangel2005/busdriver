@@ -1,6 +1,7 @@
 import { describe, expect, it } from 'vitest';
 
 import {
+  computeBestStopEtas,
   computeStopEtas,
   effectiveSpeedMps,
   estimateEtaSeconds,
@@ -113,6 +114,131 @@ describe('computeStopEtas', () => {
     expect(first.pasada).toBe(true);
     expect(first.distanciaRestanteM).toBe(0);
     expect(second.pasada).toBe(false);
+  });
+
+  it('includes the vehicle id in every row', () => {
+    const [first] = computeStopEtas(
+      ruta,
+      paradas,
+      vehicle({ vehiculo_id: 'v-test' }),
+      Date.now(),
+    );
+    expect(first.vehiculoId).toBe('v-test');
+  });
+});
+
+describe('computeBestStopEtas', () => {
+  it('picks the nearest fresh vehicle that has not passed the stop', () => {
+    const now = Date.now();
+    const [, second] = computeBestStopEtas(
+      ruta,
+      paradas,
+      [
+        vehicle({ vehiculo_id: 'near', lng: 0.015 }),
+        vehicle({ vehiculo_id: 'far', lng: 0.005 }),
+      ],
+      now,
+    );
+
+    expect(second.vehiculoId).toBe('near');
+    expect(second.pasada).toBe(false);
+    expect(second.desactualizado).toBe(false);
+    expect(second.distanciaRestanteM).toBeGreaterThan(500);
+    expect(second.distanciaRestanteM).toBeLessThan(600);
+    expect(second.etaSegundos).toBeCloseTo(second.distanciaRestanteM / 10, 5);
+  });
+
+  it('ignores a fresh vehicle that already passed the stop', () => {
+    const now = Date.now();
+    const [first] = computeBestStopEtas(
+      ruta,
+      [paradas[0]],
+      [
+        vehicle({ vehiculo_id: 'passed', lng: 0.015 }),
+        vehicle({ vehiculo_id: 'approaching', lng: 0.005 }),
+      ],
+      now,
+    );
+
+    expect(first.vehiculoId).toBe('approaching');
+    expect(first.pasada).toBe(false);
+    expect(first.distanciaRestanteM).toBeGreaterThan(500);
+    expect(first.distanciaRestanteM).toBeLessThan(600);
+  });
+
+  it('prefers a fresh vehicle over a nearer stale one', () => {
+    const now = Date.now();
+    const [second] = computeBestStopEtas(
+      ruta,
+      [paradas[1]],
+      [
+        vehicle({
+          vehiculo_id: 'stale',
+          lng: 0.017,
+          timestamp_ultima_actualizacion: now - 60_000,
+        }),
+        vehicle({ vehiculo_id: 'fresh', lng: 0.005 }),
+      ],
+      now,
+    );
+
+    expect(second.vehiculoId).toBe('fresh');
+    expect(second.desactualizado).toBe(false);
+    expect(second.etaSegundos).not.toBeNull();
+  });
+
+  it('falls back to stale vehicles that have not passed the stop', () => {
+    const now = Date.now();
+    const [first] = computeBestStopEtas(
+      ruta,
+      [paradas[0]],
+      [
+        vehicle({
+          vehiculo_id: 'stale',
+          lng: 0.005,
+          timestamp_ultima_actualizacion: now - 60_000,
+        }),
+      ],
+      now,
+    );
+
+    expect(first.vehiculoId).toBe('stale');
+    expect(first.desactualizado).toBe(true);
+    expect(first.etaSegundos).toBeNull();
+    expect(first.pasada).toBe(false);
+  });
+
+  it('marks the stop as passed when every candidate passed it', () => {
+    const now = Date.now();
+    const [first] = computeBestStopEtas(
+      ruta,
+      [paradas[0]],
+      [
+        vehicle({ vehiculo_id: 'first', lng: 0.015 }),
+        vehicle({ vehiculo_id: 'second', lng: 0.018 }),
+      ],
+      now,
+    );
+
+    expect(first.pasada).toBe(true);
+    expect(first.etaSegundos).toBeNull();
+    expect(first.distanciaRestanteM).toBe(0);
+    expect(first.desactualizado).toBe(false);
+    expect(first.vehiculoId).toBe('first');
+  });
+
+  it('ignores vehicles off duty or on another route', () => {
+    const etas = computeBestStopEtas(
+      ruta,
+      paradas,
+      [
+        vehicle({ vehiculo_id: 'off', en_servicio: false }),
+        vehicle({ vehiculo_id: 'other-route', ruta_activa: 'otra-ruta' }),
+      ],
+      Date.now(),
+    );
+
+    expect(etas).toEqual([]);
   });
 });
 

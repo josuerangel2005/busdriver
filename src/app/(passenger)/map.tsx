@@ -8,7 +8,7 @@ import { RouteMap } from '@/components/RouteMap';
 import { Screen } from '@/components/Screen';
 import { colors, font, radius, spacing } from '@/constants/theme';
 import { useNow, usePilotData } from '@/hooks/usePilotData';
-import { computeStopEtas, isStale } from '@/lib/eta';
+import { computeBestStopEtas, isStale } from '@/lib/eta';
 
 export default function PassengerMapScreen() {
   const router = useRouter();
@@ -20,16 +20,27 @@ export default function PassengerMapScreen() {
     () => vehiculos.filter((vehiculo) => vehiculo.en_servicio),
     [vehiculos],
   );
-  const vehicle = activeVehicles[0] ?? null;
+  const routeVehicles = useMemo(
+    () =>
+      ruta
+        ? activeVehicles.filter((vehiculo) => vehiculo.ruta_activa === ruta.id)
+        : [],
+    [activeVehicles, ruta],
+  );
 
   const etas = useMemo(() => {
-    if (!ruta || !vehicle) {
+    if (!ruta) {
       return [];
     }
-    return computeStopEtas(ruta, paradas, vehicle, now);
-  }, [ruta, paradas, vehicle, now]);
+    return computeBestStopEtas(ruta, paradas, vehiculos, now);
+  }, [ruta, paradas, vehiculos, now]);
 
-  const stale = vehicle ? isStale(vehicle.timestamp_ultima_actualizacion, now) : true;
+  const hasVehicle = routeVehicles.length > 0;
+  const stale =
+    hasVehicle &&
+    routeVehicles.every((vehiculo) =>
+      isStale(vehiculo.timestamp_ultima_actualizacion, now),
+    );
 
   return (
     <Screen padded={false}>
@@ -49,13 +60,13 @@ export default function PassengerMapScreen() {
             </Text>
             <Badge
               label={
-                !vehicle
+                !hasVehicle
                   ? 'Sin unidades'
                   : stale
                     ? 'Datos desactualizados'
                     : 'En servicio'
               }
-              tone={!vehicle ? 'neutral' : stale ? 'danger' : 'success'}
+              tone={!hasVehicle ? 'neutral' : stale ? 'danger' : 'success'}
             />
           </View>
         </View>

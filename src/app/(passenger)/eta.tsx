@@ -8,7 +8,7 @@ import { EtaCard } from '@/components/EtaCard';
 import { Screen } from '@/components/Screen';
 import { colors, font, radius, spacing } from '@/constants/theme';
 import { useNow, usePilotData } from '@/hooks/usePilotData';
-import { computeStopEtas } from '@/lib/eta';
+import { computeBestStopEtas } from '@/lib/eta';
 import { exportWaitsCsv, finishWait, listWaits, startWait } from '@/lib/metrics';
 
 export default function PassengerEtaScreen() {
@@ -20,17 +20,21 @@ export default function PassengerEtaScreen() {
   const [savedCount, setSavedCount] = useState(() => listWaits().length);
   const [exporting, setExporting] = useState(false);
 
-  const vehicle = useMemo(
-    () => vehiculos.find((item) => item.en_servicio) ?? null,
-    [vehiculos],
+  const hasVehicle = useMemo(
+    () =>
+      Boolean(ruta) &&
+      vehiculos.some(
+        (item) => item.en_servicio && item.ruta_activa === ruta?.id,
+      ),
+    [vehiculos, ruta],
   );
 
   const etas = useMemo(() => {
-    if (!ruta || !vehicle) {
+    if (!ruta) {
       return [];
     }
-    return computeStopEtas(ruta, paradas, vehicle, now);
-  }, [ruta, paradas, vehicle, now]);
+    return computeBestStopEtas(ruta, paradas, vehiculos, now);
+  }, [ruta, paradas, vehiculos, now]);
 
   function beginWait() {
     if (!selectedStopId) {
@@ -68,8 +72,8 @@ export default function PassengerEtaScreen() {
         <View style={styles.header}>
           <Text style={styles.title}>Tiempo estimado</Text>
           <Badge
-            label={vehicle ? 'Vehículo en servicio' : 'Sin unidades'}
-            tone={vehicle ? 'success' : 'neutral'}
+            label={hasVehicle ? 'Vehículo en servicio' : 'Sin unidades'}
+            tone={hasVehicle ? 'success' : 'neutral'}
           />
         </View>
 
