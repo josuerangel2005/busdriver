@@ -9,16 +9,51 @@ import { Screen } from '@/components/Screen';
 import { colors, font, radius, spacing } from '@/constants/theme';
 import { useNow, usePilotData } from '@/hooks/usePilotData';
 import { computeBestStopEtas } from '@/lib/eta';
+import {
+  exportFieldLogCsv,
+  listEtaTrials,
+  listLatencies,
+  logEtaTrial,
+} from '@/lib/fieldLog';
+import {
+  summarizeEtaErrors,
+  summarizeLatencies,
+  type EtaTrialLog,
+  type LatencyLog,
+} from '@/lib/fieldTest';
 import { exportWaitsCsv, finishWait, listWaits, startWait } from '@/lib/metrics';
+
+type ActiveTrial = {
+  waitId: string;
+  paradaId: string;
+  vehiculoId: string | null;
+  etaPredichaS: number | null;
+  inicio: number;
+};
 
 export default function PassengerEtaScreen() {
   const router = useRouter();
   const { ruta, paradas, vehiculos } = usePilotData();
   const now = useNow(5_000);
   const [selectedStopId, setSelectedStopId] = useState<string | null>(null);
-  const [activeWait, setActiveWait] = useState<string | null>(null);
+  const [activeTrial, setActiveTrial] = useState<ActiveTrial | null>(null);
   const [savedCount, setSavedCount] = useState(() => listWaits().length);
   const [exporting, setExporting] = useState(false);
+  const [exportingField, setExportingField] = useState<
+    'latencias' | 'pruebas_eta' | null
+  >(null);
+  const activeWait = activeTrial?.waitId ?? null;
+
+  const latencyLogs: LatencyLog[] = listLatencies();
+  const etaTrials: EtaTrialLog[] = listEtaTrials();
+  const latencySummary = useMemo(
+    () => summarizeLatencies(latencyLogs),
+    [latencyLogs],
+  );
+  const etaSummary = useMemo(
+    () => summarizeEtaErrors(etaTrials),
+    [etaTrials],
+  );
 
   const hasVehicle = useMemo(
     () =>
@@ -40,16 +75,50 @@ export default function PassengerEtaScreen() {
     if (!selectedStopId) {
       return;
     }
-    setActiveWait(startWait(selectedStopId));
+    const stopEta = etas.find((eta) => eta.parada.id === selectedStopId);
+    setActiveTrial({
+      waitId: startWait(selectedStopId),
+      paradaId: selectedStopId,
+      vehiculoId: stopEta?.vehiculoId ?? null,
+      etaPredichaS: stopEta?.etaSegundos ?? null,
+      inicio: Date.now(),
+    });
   }
 
   function endWait() {
-    if (!activeWait) {
+    if (!activeTrial) {
       return;
     }
-    finishWait(activeWait);
-    setActiveWait(null);
+    const llegada = Date.now();
+    finishWait(activeTrial.waitId);
+    logEtaTrial({
+      parada_id: activeTrial.paradaId,
+      vehiculo_id: activeTrial.vehiculoId,
+      inicio: activeTrial.inicio,
+      eta_predicha_s: activeTrial.etaPredichaS,
+      llegada,
+    });
+    setActiveTrial(null);
     setSavedCount(listWaits().length);
+  }
+
+  async function exportFieldCsv(kind: 'latencias' | 'pruebas_eta') {
+    setExportingField(kind);
+    try {
+      const uri = await exportFieldLogCsv(kind);
+      if (!uri) {
+        Alert.alert(
+          'Sin datos',
+          kind === 'latencias'
+            ? 'Todavía no hay mediciones de latencia registradas.'
+            : 'Todavía no hay pruebas de ETA registradas.',
+        );
+      }
+    } catch (error) {
+      Alert.alert('No se pudo exportar', (error as Error).message);
+    } finally {
+      setExportingField(null);
+    }
   }
 
   async function exportCsv() {
@@ -126,6 +195,37 @@ export default function PassengerEtaScreen() {
           />
         </View>
 
+        <View style={styles.measureCard}>
+          <Text style={styles.cardTitle}>Pruebas de campo</Text>
+          <Text style={styles.hint}>
+            Latencia del marcador (meta ≤ 15 s): {latencySummary.total} registros ·
+            promedio {formatMs(latencySummary.promedioMs)} · máx{' '}
+            {formatMs(latencySummary.maxMs)} ·{' '}
+            {formatPercent(latencySummary.porcentajeDentroMeta)} dentro de meta.
+          </Text>
+          <Text style={styles.hint}>
+            Error del ETA (meta ≤ 3 min): {etaSummary.total} pruebas (
+            {etaSummary.conPrediccion} con predicción) · promedio{' '}
+            {formatSeconds(etaSummary.errorAbsPromedioS)} · máx{' '}
+            {formatSeconds(etaSummary.errorAbsMaxS)} ·{' '}
+            {formatPercent(etaSummary.porcentajeDentroMeta)} dentro de meta.
+          </Text>
+          <Button
+            label="Exportar latencias CSV"
+            variant="secondary"
+            loading={exportingField === 'latencias'}
+            disabled={latencyLogs.length === 0}
+            onPress={() => exportFieldCsv('latencias')}
+          />
+          <Button
+            label="Exportar pruebas ETA CSV"
+            variant="secondary"
+            loading={exportingField === 'pruebas_eta'}
+            disabled={etaTrials.length === 0}
+            onPress={() => exportFieldCsv('pruebas_eta')}
+          />
+        </View>
+
         <Button
           label="Volver al mapa"
           variant="secondary"
@@ -134,6 +234,27 @@ export default function PassengerEtaScreen() {
       </ScrollView>
     </Screen>
   );
+}
+
+function formatMs(value: number | null): string {
+  if (value == null) {
+    return '—';
+  }
+  return `${Math.round(value)} ms`;
+}
+
+function formatSeconds(value: number | null): string {
+  if (value == null) {
+    return '—';
+  }
+  return `${value.toFixed(1)} s`;
+}
+
+function formatPercent(value: number | null): string {
+  if (value == null) {
+    return '—';
+  }
+  return `${Math.round(value)} %`;
 }
 
 const styles = StyleSheet.create({

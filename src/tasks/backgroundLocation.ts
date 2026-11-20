@@ -3,6 +3,7 @@ import * as Location from 'expo-location';
 import * as TaskManager from 'expo-task-manager';
 
 import { LOCATION_TASK_NAME, STORAGE_KEYS } from '@/constants/config';
+import { logPing } from '@/lib/fieldLog';
 import { distanceBetweenM } from '@/lib/geo';
 import { getRepository } from '@/services/repository';
 import type { TrackingSession } from '@/services/tracking';
@@ -67,7 +68,28 @@ TaskManager.defineTask(LOCATION_TASK_NAME, async ({ data, error }) => {
     en_servicio: true,
   };
 
-  await getRepository().publishVehicle(vehiculo);
+  try {
+    await getRepository().publishVehicle(vehiculo);
+    logPing({
+      vehiculo_id: vehiculo.vehiculo_id,
+      timestamp_gps: timestamp,
+      enviado_en: Date.now(),
+      ok: true,
+      error: null,
+    });
+  } catch (error) {
+    const message = error instanceof Error ? error.message : String(error);
+    logPing({
+      vehiculo_id: vehiculo.vehiculo_id,
+      timestamp_gps: timestamp,
+      enviado_en: Date.now(),
+      ok: false,
+      error: message,
+    });
+    console.warn('[location-task] no se pudo publicar la ubicación', message);
+    return;
+  }
+
   await AsyncStorage.setItem(
     STORAGE_KEYS.lastPing,
     JSON.stringify({ lat: latitude, lng: longitude, timestamp, speed }),

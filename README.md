@@ -60,7 +60,7 @@ npx eas build --profile development --platform android
 | `npm start`         | Metro + dev client                        |
 | `npm run android`   | Compila y ejecuta en Android              |
 | `npm run ios`       | Compila y ejecuta en iOS                  |
-| `npm test`          | Pruebas unitarias de ETA, geometría y turnos |
+| `npm test`          | Pruebas unitarias de ETA, geometría, turnos y métricas de campo |
 | `npm run typecheck` | Verificación de tipos                     |
 | `npm run lint`      | ESLint                                    |
 
@@ -117,6 +117,60 @@ y se envía como `velocidad_actual`.
 - **HU-06**: ETA visible por parada, error ≤ 3 min en pruebas y aviso de datos
   desactualizados.
 - **HU-07**: registro anónimo de espera (inicio, fin, parada) exportable a CSV.
+
+## Pruebas de campo
+
+La app registra en el dispositivo las mediciones necesarias para demostrar los
+criterios de aceptación de las HU-02, HU-05 y HU-06. Todo se guarda en la base
+local `metricas.db` y se exporta como CSV desde la propia app.
+
+### Prueba de 30 minutos con pantalla bloqueada (HU-02)
+
+1. En el teléfono del conductor, inicia sesión como conductor y otorga el
+   permiso de ubicación "Permitir todo el tiempo".
+2. Inicia el turno y bloquea la pantalla.
+3. Mantén la prueba durante 30 minutos continuos (puedes moverte por la ruta).
+4. Al terminar, desbloquea el teléfono y vuelve al panel del conductor.
+5. La tarjeta **Prueba de transmisión** muestra el total de pings, los fallidos,
+   la duración, el intervalo máximo y el porcentaje de intervalos ≤ 10 s.
+6. Usa **Exportar pings CSV** para guardar la evidencia.
+
+Meta: cada intervalo entre pings exitosos debe ser ≤ 10 s (`PING_TARGET_MS`)
+durante al menos 30 minutos continuos.
+
+### Latencia del marcador (HU-05)
+
+Cada vez que el teléfono del pasajero recibe una nueva emisión de posición, la
+app registra la diferencia entre `timestamp_ultima_actualizacion` y la hora de
+recepción. En la pantalla de ETA, la tarjeta **Pruebas de campo** muestra el
+promedio, el máximo y el porcentaje de latencias ≤ 15 s (`LATENCY_TARGET_MS`).
+Usa **Exportar latencias CSV** para guardar la evidencia.
+
+> La latencia depende de que ambos teléfonos tengan el reloj sincronizado. Deja
+> activada la hora automática por red en los dos dispositivos.
+
+### Error del ETA (HU-06 / HU-07)
+
+1. Selecciona una parada y pulsa **Iniciar medición**; la app guarda el ETA que
+   se mostraba en ese momento y el vehículo asociado.
+2. Cuando el vehículo llegue de verdad a la parada, pulsa **Finalizar medición**.
+3. La app guarda el tiempo real y calcula el error absoluto contra la predicción.
+
+La tarjeta **Pruebas de campo** muestra el promedio, el máximo y el porcentaje de
+errores ≤ 3 min (`ETA_ERROR_TARGET_S`). Usa **Exportar pruebas ETA CSV**.
+
+### Contenido de los CSV
+
+| Archivo       | Columnas                                                                   |
+| ------------- | -------------------------------------------------------------------------- |
+| Pings         | `id`, `vehiculo_id`, `timestamp_gps_iso`, `enviado_en_iso`, `ok`, `error`   |
+| Latencias     | `id`, `vehiculo_id`, `timestamp_emision_iso`, `recibido_en_iso`, `latencia_ms` |
+| Pruebas ETA   | `id`, `parada_id`, `vehiculo_id`, `inicio_iso`, `llegada_iso`, `eta_predicha_s` |
+| Esperas       | `id`, `parada_id`, `inicio_iso`, `fin_iso`, `duracion_ms`                  |
+
+Metas: pings ≤ 10 s, latencia ≤ 15 s, error de ETA ≤ 3 min. El botón
+**Borrar registros de prueba** del panel del conductor elimina pings, latencias
+y pruebas de ETA de este dispositivo; no borra las mediciones de espera.
 
 ## Limitaciones conocidas
 

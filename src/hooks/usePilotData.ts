@@ -1,6 +1,8 @@
 import { useEffect, useState } from 'react';
 
 import { PILOT_ROUTE_ID } from '@/constants/config';
+import { logLatency } from '@/lib/fieldLog';
+import { createLatencyTracker } from '@/lib/fieldTest';
 import { getRepository } from '@/services/repository';
 import type { Parada, Ruta, VehiculoActivo } from '@/types/models';
 
@@ -11,9 +13,16 @@ export function usePilotData(routeId: string = PILOT_ROUTE_ID) {
 
   useEffect(() => {
     const repository = getRepository();
+    const trackLatencies = createLatencyTracker();
     const unsubscribeRoute = repository.subscribeRoute(routeId, setRuta);
     const unsubscribeStops = repository.subscribeStops(routeId, setParadas);
-    const unsubscribeVehicles = repository.subscribeVehicles(setVehiculos);
+    const unsubscribeVehicles = repository.subscribeVehicles((snapshot) => {
+      const recibidoEn = Date.now();
+      for (const entry of trackLatencies(snapshot, recibidoEn)) {
+        logLatency(entry);
+      }
+      setVehiculos(snapshot);
+    });
 
     return () => {
       unsubscribeRoute();

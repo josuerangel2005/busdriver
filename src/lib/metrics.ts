@@ -69,6 +69,25 @@ export function listWaits(): MetricaEspera[] {
     }));
 }
 
+export async function exportCsvFile(
+  content: string,
+  filenamePrefix: string,
+  dialogTitle: string,
+): Promise<string> {
+  const file = new File(Paths.cache, `${filenamePrefix}-${Date.now()}.csv`);
+  file.create({ overwrite: true, intermediates: true });
+  file.write(content);
+
+  if (await Sharing.isAvailableAsync()) {
+    await Sharing.shareAsync(file.uri, {
+      mimeType: 'text/csv',
+      dialogTitle,
+    });
+  }
+
+  return file.uri;
+}
+
 export async function exportWaitsCsv(): Promise<string | null> {
   const rows = listWaits();
   if (!rows.length) {
@@ -88,16 +107,9 @@ export async function exportWaitsCsv(): Promise<string | null> {
     )
     .join('\n');
 
-  const file = new File(Paths.cache, `metricas-espera-${Date.now()}.csv`);
-  file.create({ overwrite: true, intermediates: true });
-  file.write(`${header}\n${body}`);
-
-  if (await Sharing.isAvailableAsync()) {
-    await Sharing.shareAsync(file.uri, {
-      mimeType: 'text/csv',
-      dialogTitle: 'Exportar métricas de espera',
-    });
-  }
-
-  return file.uri;
+  return exportCsvFile(
+    `${header}\n${body}`,
+    'metricas-espera',
+    'Exportar métricas de espera',
+  );
 }

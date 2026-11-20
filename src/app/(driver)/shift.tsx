@@ -1,6 +1,6 @@
 import * as Location from 'expo-location';
 import { useRouter } from 'expo-router';
-import { useEffect, useState } from 'react';
+import { useEffect, useMemo, useState } from 'react';
 import { Alert, ScrollView, StyleSheet, Text, View } from 'react-native';
 
 import { Badge } from '@/components/Badge';
@@ -9,6 +9,8 @@ import { Screen } from '@/components/Screen';
 import { PILOT_ROUTE_ID } from '@/constants/config';
 import { colors, font, radius, spacing } from '@/constants/theme';
 import { PLACEHOLDER_ROUTE } from '@/data/seed';
+import { clearFieldLogs, exportFieldLogCsv, listPings } from '@/lib/fieldLog';
+import { summarizePings } from '@/lib/fieldTest';
 import { getRepository } from '@/services/repository';
 import { beginShift, endShift } from '@/services/shift';
 import {
@@ -25,6 +27,14 @@ export default function ShiftScreen() {
   const { active, loading, refresh, setActive } = useTrackingStore();
   const [checking, setChecking] = useState(true);
   const [working, setWorking] = useState(false);
+  const [pings, setPings] = useState(() => listPings());
+  const [exportingPings, setExportingPings] = useState(false);
+  const pingSummary = useMemo(() => summarizePings(pings), [pings]);
+
+  useEffect(() => {
+    const timer = setInterval(() => setPings(listPings()), 5_000);
+    return () => clearInterval(timer);
+  }, []);
 
   useEffect(() => {
     let mounted = true;
@@ -117,6 +127,38 @@ export default function ShiftScreen() {
     }
   }
 
+  async function handleExportPings() {
+    setExportingPings(true);
+    try {
+      const uri = await exportFieldLogCsv('pings');
+      if (!uri) {
+        Alert.alert('Sin datos', 'Todavía no hay pings registrados.');
+      }
+    } catch (error) {
+      Alert.alert('No se pudo exportar', (error as Error).message);
+    } finally {
+      setExportingPings(false);
+    }
+  }
+
+  function handleClearLogs() {
+    Alert.alert(
+      'Borrar registros de prueba',
+      'Se eliminarán los pings, las latencias y las pruebas de ETA guardadas en este dispositivo. Esta acción no se puede deshacer.',
+      [
+        { text: 'Cancelar', style: 'cancel' },
+        {
+          text: 'Borrar',
+          style: 'destructive',
+          onPress: () => {
+            clearFieldLogs();
+            setPings([]);
+          },
+        },
+      ],
+    );
+  }
+
   if (checking || loading) {
     return (
       <Screen>
@@ -155,6 +197,32 @@ export default function ShiftScreen() {
         </View>
 
         <View style={styles.card}>
+          <Text style={styles.cardTitle}>Prueba de transmisión</Text>
+          <Text style={styles.muted}>
+            Pings registrados: {pingSummary.total} · fallidos: {pingSummary.fallidos}
+          </Text>
+          <Text style={styles.muted}>
+            Duración: {formatMinutes(pingSummary.duracionMs)} · intervalo máx:{' '}
+            {formatInterval(pingSummary.intervaloMaxMs)}
+          </Text>
+          <Text style={styles.muted}>
+            Intervalos ≤ 10 s: {formatPercent(pingSummary.porcentajeDentroMeta)}
+          </Text>
+          <Button
+            label="Exportar pings CSV"
+            variant="secondary"
+            loading={exportingPings}
+            disabled={pingSummary.total === 0}
+            onPress={handleExportPings}
+          />
+          <Button
+            label="Borrar registros de prueba"
+            variant="danger"
+            onPress={handleClearLogs}
+          />
+        </View>
+
+        <View style={styles.card}>
           <Text style={styles.cardTitle}>Recomendaciones</Text>
           <Text style={styles.muted}>
             · Mantén la batería por encima del 30 %.{'\n'}
@@ -178,6 +246,27 @@ export default function ShiftScreen() {
       </ScrollView>
     </Screen>
   );
+}
+
+function formatMinutes(duracionMs: number): string {
+  if (duracionMs <= 0) {
+    return '0 min';
+  }
+  return `${(duracionMs / 60_000).toFixed(1)} min`;
+}
+
+function formatInterval(intervaloMs: number | null): string {
+  if (intervaloMs == null) {
+    return '—';
+  }
+  return `${(intervaloMs / 1000).toFixed(1)} s`;
+}
+
+function formatPercent(value: number | null): string {
+  if (value == null) {
+    return '—';
+  }
+  return `${Math.round(value)} %`;
 }
 
 const styles = StyleSheet.create({

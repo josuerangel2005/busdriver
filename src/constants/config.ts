@@ -8,6 +8,12 @@ export const UPDATE_INTERVAL_MS = 10_000;
 
 export const STALE_THRESHOLD_MS = 30_000;
 
+export const PING_TARGET_MS = 10_000;
+
+export const LATENCY_TARGET_MS = 15_000;
+
+export const ETA_ERROR_TARGET_S = 180;
+
 export const MIN_USABLE_SPEED_MPS = 1;
 
 export const FALLBACK_SPEED_MPS = 5.5;
