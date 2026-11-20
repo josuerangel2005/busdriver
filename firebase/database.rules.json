@@ -15,7 +15,7 @@
     "vehiculos_activos": {
       ".read": "auth != null",
       "$vehiculoId": {
-        ".write": "auth != null && auth.uid === $vehiculoId",
+        ".write": "auth != null && auth.uid === $vehiculoId && root.child('usuarios').child(auth.uid).child('consentimiento').child('aceptado').val() === true",
         ".validate": "newData.hasChildren(['lat', 'lng', 'timestamp_ultima_actualizacion', 'ruta_activa', 'velocidad_actual', 'en_servicio'])",
         "lat": { ".validate": "newData.isNumber()" },
         "lng": { ".validate": "newData.isNumber()" },

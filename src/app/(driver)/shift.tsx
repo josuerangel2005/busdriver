@@ -1,3 +1,4 @@
+import * as Location from 'expo-location';
 import { useRouter } from 'expo-router';
 import { useEffect, useState } from 'react';
 import { Alert, ScrollView, StyleSheet, Text, View } from 'react-native';
@@ -9,6 +10,7 @@ import { PILOT_ROUTE_ID } from '@/constants/config';
 import { colors, font, radius, spacing } from '@/constants/theme';
 import { PLACEHOLDER_ROUTE } from '@/data/seed';
 import { getRepository } from '@/services/repository';
+import { beginShift, endShift } from '@/services/shift';
 import {
   requestLocationPermissions,
   startTracking,
@@ -52,7 +54,7 @@ export default function ShiftScreen() {
     };
   }, [uid, refresh, router]);
 
-  async function beginShift() {
+  async function handleBeginShift() {
     if (!uid) {
       return;
     }
@@ -66,9 +68,26 @@ export default function ShiftScreen() {
         );
         return;
       }
-      await startTracking({ vehiculoId: uid, rutaId: PILOT_ROUTE_ID });
-      await getRepository().setService(uid, true);
-      setActive(true, { vehiculoId: uid, rutaId: PILOT_ROUTE_ID });
+      const session = { vehiculoId: uid, rutaId: PILOT_ROUTE_ID };
+      await beginShift(
+        {
+          getCurrentPosition: async () => {
+            const position = await Location.getCurrentPositionAsync({
+              accuracy: Location.Accuracy.High,
+            });
+            return {
+              lat: position.coords.latitude,
+              lng: position.coords.longitude,
+              timestamp: position.timestamp || Date.now(),
+              speed: position.coords.speed,
+            };
+          },
+          publishVehicle: (vehiculo) => getRepository().publishVehicle(vehiculo),
+          startTracking,
+        },
+        session,
+      );
+      setActive(true, session);
     } catch (error) {
       Alert.alert('No se pudo iniciar el turno', (error as Error).message);
     } finally {
@@ -76,14 +95,20 @@ export default function ShiftScreen() {
     }
   }
 
-  async function endShift() {
+  async function handleEndShift() {
     if (!uid) {
       return;
     }
     setWorking(true);
     try {
-      await getRepository().setService(uid, false);
-      await stopTracking();
+      await endShift(
+        {
+          stopTracking,
+          setService: (vehiculoId, enServicio) =>
+            getRepository().setService(vehiculoId, enServicio),
+        },
+        uid,
+      );
       setActive(false, null);
     } catch (error) {
       Alert.alert('No se pudo finalizar el turno', (error as Error).message);
@@ -142,7 +167,7 @@ export default function ShiftScreen() {
           label={active ? 'Finalizar turno' : 'Iniciar turno'}
           variant={active ? 'danger' : 'primary'}
           loading={working}
-          onPress={active ? endShift : beginShift}
+          onPress={active ? handleEndShift : handleBeginShift}
         />
 
         <Button

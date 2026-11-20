@@ -49,6 +49,10 @@ npx eas build --profile development --platform android
 6. En `.env` coloca `EXPO_PUBLIC_USE_MOCK=false`.
 7. Vuelve a compilar el development build.
 
+> `google-services.json` (Android) y `GoogleService-Info.plist` (iOS) deben
+> existir en la raíz del proyecto antes de compilar con
+> `EXPO_PUBLIC_USE_MOCK=false`; sin ellos el build nativo falla.
+
 ## Comandos
 
 | Comando             | Qué hace                                  |
@@ -56,7 +60,7 @@ npx eas build --profile development --platform android
 | `npm start`         | Metro + dev client                        |
 | `npm run android`   | Compila y ejecuta en Android              |
 | `npm run ios`       | Compila y ejecuta en iOS                  |
-| `npm test`          | Pruebas unitarias de ETA y geometría      |
+| `npm test`          | Pruebas unitarias de ETA, geometría y turnos |
 | `npm run typecheck` | Verificación de tipos                     |
 | `npm run lint`      | ESLint                                    |
 
