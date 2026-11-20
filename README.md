@@ -22,7 +22,10 @@ Firebase (Auth anónima + Realtime Database), expo-location + expo-task-manager,
 ## Puesta en marcha (modo simulado)
 
 El modo simulado no necesita Firebase: un vehículo recorre la ruta piloto cada
-3 segundos.
+3 segundos. Con el modo simulado activo (cualquier valor distinto de `false` en
+`EXPO_PUBLIC_USE_MOCK`) los plugins de React Native Firebase se omiten
+automáticamente en la configuración de Expo, por lo que **no necesitas
+`google-services.json` ni `GoogleService-Info.plist`** para compilar.
 
 ```bash
 npm install
@@ -48,6 +51,11 @@ npx eas build --profile development --platform android
    (iOS) en la raíz del proyecto.
 6. En `.env` coloca `EXPO_PUBLIC_USE_MOCK=false`.
 7. Vuelve a compilar el development build.
+
+Para los builds de EAS también debes definir `EXPO_PUBLIC_USE_MOCK=false` en el
+entorno de EAS (variables de entorno del proyecto o el bloque `env` de
+`eas.json`), porque EAS no sube el archivo `.env`. Sin esa variable el build
+usaría el modo simulado y omitiría Firebase.
 
 > `google-services.json` (Android) y `GoogleService-Info.plist` (iOS) deben
 > existir en la raíz del proyecto antes de compilar con
