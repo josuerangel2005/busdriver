@@ -1,5 +1,6 @@
 import { StyleSheet, Text, View } from 'react-native';
 
+import { Icon, type IconName } from '@/components/Icon';
 import { colors, font, radius, spacing } from '@/constants/theme';
 
 type Props = {
@@ -7,20 +8,39 @@ type Props = {
   tone?: 'neutral' | 'success' | 'warning' | 'danger';
 };
 
-const toneColor: Record<NonNullable<Props['tone']>, string> = {
-  neutral: colors.muted,
-  success: colors.success,
-  warning: colors.warning,
-  danger: colors.danger,
+const toneStyle: Record<
+  NonNullable<Props['tone']>,
+  { backgroundColor: string; color: string; icon: IconName }
+> = {
+  neutral: {
+    backgroundColor: colors.passedGround,
+    color: colors.passedInk,
+    icon: 'minus-circle',
+  },
+  success: {
+    backgroundColor: colors.signGreen,
+    color: colors.onGreen,
+    icon: 'circle',
+  },
+  warning: {
+    backgroundColor: colors.signYellow,
+    color: colors.onYellow,
+    icon: 'alert',
+  },
+  danger: {
+    backgroundColor: colors.signRed,
+    color: colors.onRed,
+    icon: 'alert',
+  },
 };
 
 export function Badge({ label, tone = 'neutral' }: Props) {
-  const color = toneColor[tone];
+  const current = toneStyle[tone];
 
   return (
-    <View style={[styles.badge, { backgroundColor: `${color}1A` }]}>
-      <View style={[styles.dot, { backgroundColor: color }]} />
-      <Text style={[styles.label, { color }]}>{label}</Text>
+    <View style={[styles.badge, { backgroundColor: current.backgroundColor }]}>
+      <Icon color={current.color} name={current.icon} size={14} />
+      <Text style={[styles.label, { color: current.color }]}>{label}</Text>
     </View>
   );
 }
@@ -35,13 +55,8 @@ const styles = StyleSheet.create({
     paddingVertical: spacing.xs,
     paddingHorizontal: spacing.sm,
   },
-  dot: {
-    width: 8,
-    height: 8,
-    borderRadius: 4,
-  },
   label: {
-    fontSize: font.sm,
+    fontSize: font.label,
     fontWeight: '600',
   },
 });

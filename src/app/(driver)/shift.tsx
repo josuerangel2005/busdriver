@@ -2,12 +2,14 @@ import * as Location from 'expo-location';
 import { useRouter } from 'expo-router';
 import { useEffect, useMemo, useState } from 'react';
 import { Alert, ScrollView, StyleSheet, Text, View } from 'react-native';
+import { useSafeAreaInsets } from 'react-native-safe-area-context';
 
-import { Badge } from '@/components/Badge';
 import { Button } from '@/components/Button';
+import { Icon } from '@/components/Icon';
+import { Placard } from '@/components/Placard';
 import { Screen } from '@/components/Screen';
 import { PILOT_ROUTE_ID, USE_MOCK } from '@/constants/config';
-import { colors, font, radius, spacing } from '@/constants/theme';
+import { colors, font, fontFamily, spacing } from '@/constants/theme';
 import { PLACEHOLDER_ROUTE } from '@/data/seed';
 import { clearFieldLogs, exportFieldLogCsv, listPings } from '@/lib/fieldLog';
 import { summarizePings } from '@/lib/fieldTest';
@@ -24,6 +26,7 @@ import { useTrackingStore } from '@/stores/tracking';
 
 export default function ShiftScreen() {
   const router = useRouter();
+  const insets = useSafeAreaInsets();
   const uid = useAuthStore((state) => state.uid);
   const role = useAuthStore((state) => state.role);
   const { active, loading, refresh, setActive } = useTrackingStore();
@@ -193,23 +196,35 @@ export default function ShiftScreen() {
   return (
     <Screen padded={false}>
       <ScrollView contentContainerStyle={styles.content}>
-        <View style={styles.header}>
-          <Text style={styles.title}>Panel del conductor</Text>
-          <Badge
-            label={active ? 'En servicio' : 'Fuera de servicio'}
-            tone={active ? 'success' : 'neutral'}
-          />
-        </View>
+        <Text style={styles.title}>Panel del conductor</Text>
 
-        <View style={styles.card}>
-          <Text style={styles.cardTitle}>{PLACEHOLDER_ROUTE.nombre}</Text>
+        <Placard tone={active ? 'green' : 'passed'}>
+          <View style={styles.stateRow}>
+            <Icon
+              color={active ? colors.onGreen : colors.passedInk}
+              name={active ? 'steering' : 'steering-off'}
+              size={36}
+            />
+            <Text
+              style={[
+                styles.stateText,
+                { color: active ? colors.onGreen : colors.passedInk },
+              ]}
+            >
+              {active ? 'En servicio' : 'Fuera de servicio'}
+            </Text>
+          </View>
+        </Placard>
+
+        <View style={styles.section}>
+          <Text style={styles.sectionTitle}>{PLACEHOLDER_ROUTE.nombre}</Text>
           <Text style={styles.muted}>
             {PLACEHOLDER_ROUTE.polyline.length} puntos de recorrido · actualización cada 10 s
           </Text>
         </View>
 
-        <View style={styles.card}>
-          <Text style={styles.cardTitle}>Transmisión</Text>
+        <View style={styles.section}>
+          <Text style={styles.sectionTitle}>Transmisión</Text>
           <Text style={styles.muted}>
             {active
               ? USE_MOCK
@@ -224,8 +239,8 @@ export default function ShiftScreen() {
           ) : null}
         </View>
 
-        <View style={styles.card}>
-          <Text style={styles.cardTitle}>Prueba de transmisión</Text>
+        <View style={styles.section}>
+          <Text style={styles.sectionTitle}>Prueba de transmisión</Text>
           <Text style={styles.muted}>
             Pings registrados: {pingSummary.total} · fallidos: {pingSummary.fallidos}
           </Text>
@@ -245,13 +260,13 @@ export default function ShiftScreen() {
           />
           <Button
             label="Borrar registros de prueba"
-            variant="danger"
+            variant="dangerOutline"
             onPress={handleClearLogs}
           />
         </View>
 
-        <View style={styles.card}>
-          <Text style={styles.cardTitle}>Recomendaciones</Text>
+        <View style={styles.section}>
+          <Text style={styles.sectionTitle}>Recomendaciones</Text>
           <Text style={styles.muted}>
             · Mantén la batería por encima del 30 %.{'\n'}
             · Desactiva la optimización de batería para esta app.{'\n'}
@@ -260,18 +275,25 @@ export default function ShiftScreen() {
         </View>
 
         <Button
-          label={active ? 'Finalizar turno' : 'Iniciar turno'}
-          variant={active ? 'danger' : 'primary'}
-          loading={working}
-          onPress={active ? handleEndShift : handleBeginShift}
-        />
-
-        <Button
           label="Cambiar rol"
           variant="secondary"
           onPress={handleChangeRole}
         />
       </ScrollView>
+
+      <View
+        style={[
+          styles.footer,
+          { paddingBottom: Math.max(insets.bottom, spacing.md) },
+        ]}
+      >
+        <Button
+          label={active ? 'Finalizar turno' : 'Iniciar turno'}
+          variant={active ? 'danger' : 'primary'}
+          loading={working}
+          onPress={active ? handleEndShift : handleBeginShift}
+        />
+      </View>
     </Screen>
   );
 }
@@ -301,37 +323,49 @@ const styles = StyleSheet.create({
   content: {
     padding: spacing.md,
     gap: spacing.md,
+    paddingBottom: spacing.xl,
   },
   center: {
     flex: 1,
     alignItems: 'center',
     justifyContent: 'center',
   },
-  header: {
-    gap: spacing.sm,
-    paddingTop: spacing.sm,
-  },
   title: {
-    color: colors.text,
-    fontSize: font.xl,
-    fontWeight: '800',
+    color: colors.ink,
+    fontFamily: fontFamily.display,
+    fontSize: font.headline,
+    lineHeight: 32,
   },
-  card: {
+  stateRow: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    gap: spacing.sm,
+  },
+  stateText: {
+    flexShrink: 1,
+    fontFamily: fontFamily.display,
+    fontSize: font.display,
+    lineHeight: 44,
+  },
+  section: {
     backgroundColor: colors.surface,
-    borderRadius: radius.md,
-    borderWidth: 1,
-    borderColor: colors.border,
     padding: spacing.md,
-    gap: spacing.xs,
+    gap: spacing.sm,
   },
-  cardTitle: {
-    color: colors.text,
-    fontSize: font.md,
+  sectionTitle: {
+    color: colors.ink,
+    fontSize: font.body,
     fontWeight: '700',
   },
   muted: {
-    color: colors.muted,
-    fontSize: font.sm,
-    lineHeight: 20,
+    color: colors.inkMuted,
+    fontSize: font.body,
+    lineHeight: 24,
+  },
+  footer: {
+    padding: spacing.md,
+    backgroundColor: colors.ground,
+    borderTopWidth: 2,
+    borderTopColor: colors.line,
   },
 });

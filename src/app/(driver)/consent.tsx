@@ -5,7 +5,7 @@ import { ScrollView, StyleSheet, Text, View } from 'react-native';
 import { Button } from '@/components/Button';
 import { Screen } from '@/components/Screen';
 import { CONSENT_VERSION } from '@/constants/config';
-import { colors, font, radius, spacing } from '@/constants/theme';
+import { colors, font, fontFamily, spacing } from '@/constants/theme';
 import { getRepository } from '@/services/repository';
 import { useAuthStore } from '@/stores/auth';
 
@@ -57,9 +57,9 @@ export default function ConsentScreen() {
         </Text>
 
         {SECTIONS.map((section) => (
-          <View key={section.title} style={styles.card}>
-            <Text style={styles.cardTitle}>{section.title}</Text>
-            <Text style={styles.cardBody}>{section.body}</Text>
+          <View key={section.title} style={styles.section}>
+            <Text style={styles.sectionTitle}>{section.title}</Text>
+            <Text style={styles.sectionBody}>{section.body}</Text>
           </View>
         ))}
 
@@ -80,41 +80,38 @@ const styles = StyleSheet.create({
     paddingBottom: spacing.xl,
   },
   title: {
-    color: colors.text,
-    fontSize: font.xl,
-    fontWeight: '800',
+    color: colors.ink,
+    fontFamily: fontFamily.display,
+    fontSize: font.headline,
+    lineHeight: 32,
   },
   intro: {
-    color: colors.muted,
-    fontSize: font.md,
-    lineHeight: 22,
+    color: colors.inkMuted,
+    fontSize: font.body,
+    lineHeight: 24,
   },
-  card: {
+  section: {
     backgroundColor: colors.surface,
-    borderRadius: radius.md,
-    borderWidth: 1,
-    borderColor: colors.border,
     padding: spacing.md,
     gap: spacing.xs,
   },
-  cardTitle: {
-    color: colors.text,
-    fontSize: font.md,
+  sectionTitle: {
+    color: colors.ink,
+    fontSize: font.body,
     fontWeight: '700',
   },
-  cardBody: {
-    color: colors.muted,
-    fontSize: font.sm,
-    lineHeight: 20,
+  sectionBody: {
+    color: colors.inkMuted,
+    fontSize: font.body,
+    lineHeight: 24,
   },
   version: {
-    color: colors.muted,
-    fontSize: font.sm,
+    color: colors.inkMuted,
+    fontSize: 14,
+    lineHeight: 20,
   },
   footer: {
     padding: spacing.md,
-    borderTopWidth: 1,
-    borderTopColor: colors.border,
-    backgroundColor: colors.background,
+    backgroundColor: colors.surface,
   },
 });

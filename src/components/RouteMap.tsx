@@ -3,7 +3,8 @@ import type { Feature, LineString } from 'geojson';
 import { Pressable, StyleSheet, Text, View } from 'react-native';
 
 import { MAP_STYLE_URL } from '@/constants/config';
-import { colors, font } from '@/constants/theme';
+import { colors, fontFamily, radius } from '@/constants/theme';
+import { isStale } from '@/lib/eta';
 import type { Parada, Ruta, VehiculoActivo } from '@/types/models';
 
 type Props = {
@@ -12,6 +13,7 @@ type Props = {
   vehiculos: VehiculoActivo[];
   selectedStopId?: string | null;
   onSelectStop?: (parada: Parada) => void;
+  now: number;
 };
 
 const DEFAULT_CENTER: [number, number] = [-72.5008, 7.898];
@@ -22,6 +24,7 @@ export function RouteMap({
   vehiculos,
   selectedStopId,
   onSelectStop,
+  now,
 }: Props) {
   const firstPoint = ruta?.polyline[0];
   const center: [number, number] = firstPoint
@@ -49,13 +52,13 @@ export function RouteMap({
               id="ruta-linea"
               type="line"
               layout={{ 'line-cap': 'round', 'line-join': 'round' }}
-              paint={{ 'line-color': colors.primary, 'line-width': 5 }}
+              paint={{ 'line-color': colors.signBlue, 'line-width': 5 }}
             />
           </GeoJSONSource>
         ) : null}
         {paradas.map((parada) => (
           <Marker key={parada.id} lngLat={[parada.lng, parada.lat]} anchor="bottom">
-            <Pressable onPress={() => onSelectStop?.(parada)} hitSlop={8}>
+            <Pressable onPress={() => onSelectStop?.(parada)} hitSlop={10}>
               <View
                 style={[
                   styles.stop,
@@ -67,17 +70,18 @@ export function RouteMap({
             </Pressable>
           </Marker>
         ))}
-        {vehiculos.map((vehiculo) => (
-          <Marker
-            key={vehiculo.vehiculo_id}
-            lngLat={[vehiculo.lng, vehiculo.lat]}
-            anchor="center"
-          >
-            <View style={styles.vehicle}>
-              <View style={styles.vehicleCore} />
-            </View>
-          </Marker>
-        ))}
+        {vehiculos.map((vehiculo) => {
+          const stale = isStale(vehiculo.timestamp_ultima_actualizacion, now);
+          return (
+            <Marker
+              key={vehiculo.vehiculo_id}
+              lngLat={[vehiculo.lng, vehiculo.lat]}
+              anchor="center"
+            >
+              <View style={[styles.vehicle, stale && styles.vehicleStale]} />
+            </Marker>
+          );
+        })}
       </Map>
     </View>
   );
@@ -94,36 +98,30 @@ const styles = StyleSheet.create({
   stop: {
     width: 28,
     height: 28,
-    borderRadius: 14,
-    backgroundColor: colors.marker,
-    borderWidth: 2,
-    borderColor: colors.surface,
+    borderRadius: radius.sign,
+    backgroundColor: colors.ink,
     alignItems: 'center',
     justifyContent: 'center',
   },
   stopSelected: {
-    backgroundColor: colors.primary,
     transform: [{ scale: 1.15 }],
   },
   stopText: {
     color: colors.surface,
-    fontSize: font.sm,
-    fontWeight: '700',
+    fontFamily: fontFamily.display,
+    fontSize: 15,
+    lineHeight: 17,
+    includeFontPadding: false,
   },
   vehicle: {
-    width: 34,
-    height: 34,
-    borderRadius: 17,
-    backgroundColor: `${colors.success}33`,
-    alignItems: 'center',
-    justifyContent: 'center',
+    width: 22,
+    height: 22,
+    borderRadius: 11,
+    backgroundColor: colors.signYellow,
+    borderWidth: 3,
+    borderColor: colors.ink,
   },
-  vehicleCore: {
-    width: 16,
-    height: 16,
-    borderRadius: 8,
-    backgroundColor: colors.success,
-    borderWidth: 2,
-    borderColor: colors.surface,
+  vehicleStale: {
+    backgroundColor: colors.signRed,
   },
 });

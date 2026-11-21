@@ -19,10 +19,11 @@ export function Screen({ children, padded = true }: Props) {
 const styles = StyleSheet.create({
   safe: {
     flex: 1,
-    backgroundColor: colors.background,
+    backgroundColor: colors.ground,
   },
   content: {
     flex: 1,
+    backgroundColor: colors.ground,
   },
   padded: {
     paddingHorizontal: spacing.md,

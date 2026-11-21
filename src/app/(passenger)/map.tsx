@@ -4,9 +4,10 @@ import { Pressable, ScrollView, StyleSheet, Text, View } from 'react-native';
 
 import { Badge } from '@/components/Badge';
 import { EtaCard } from '@/components/EtaCard';
+import { Placard } from '@/components/Placard';
 import { RouteMap } from '@/components/RouteMap';
 import { Screen } from '@/components/Screen';
-import { colors, font, radius, spacing } from '@/constants/theme';
+import { colors, font, fontFamily, spacing } from '@/constants/theme';
 import { useNow, usePilotData } from '@/hooks/usePilotData';
 import { computeBestStopEtas, isStale } from '@/lib/eta';
 import { useAuthStore } from '@/stores/auth';
@@ -41,6 +42,11 @@ export default function PassengerMapScreen() {
     return computeBestStopEtas(ruta, paradas, vehiculos, now);
   }, [ruta, paradas, vehiculos, now]);
 
+  const highlightStopId = useMemo(
+    () => etas.find((stopEta) => !stopEta.pasada)?.parada.id ?? null,
+    [etas],
+  );
+
   const hasVehicle = routeVehicles.length > 0;
   const stale =
     hasVehicle &&
@@ -57,37 +63,50 @@ export default function PassengerMapScreen() {
           vehiculos={activeVehicles}
           selectedStopId={selectedStopId}
           onSelectStop={(parada) => setSelectedStopId(parada.id)}
+          now={now}
         />
 
         <View style={styles.overlay}>
-          <View style={styles.overlayCard}>
-            <View style={styles.overlayHeader}>
-              <Text style={styles.routeName} numberOfLines={1}>
-                {ruta?.nombre ?? 'Cargando ruta…'}
-              </Text>
-              <Badge
-                label={
-                  !hasVehicle
-                    ? 'Sin unidades'
-                    : stale
-                      ? 'Datos desactualizados'
-                      : 'En servicio'
-                }
-                tone={!hasVehicle ? 'neutral' : stale ? 'danger' : 'success'}
-              />
+          <Placard tone="plain">
+            <View style={styles.placardContent}>
+              <View style={styles.overlayHeader}>
+                <Text style={styles.routeName} numberOfLines={1}>
+                  {ruta?.nombre ?? 'Cargando ruta…'}
+                </Text>
+                <Badge
+                  label={
+                    !hasVehicle
+                      ? 'Sin unidades'
+                      : stale
+                        ? 'Datos desactualizados'
+                        : 'En servicio'
+                  }
+                  tone={!hasVehicle ? 'neutral' : stale ? 'danger' : 'success'}
+                />
+              </View>
+              <Pressable
+                accessibilityRole="button"
+                hitSlop={{ top: 16, bottom: 16, left: 8, right: 8 }}
+                onPress={handleChangeRole}
+                style={styles.roleSwitchButton}
+              >
+                <Text style={styles.roleSwitch}>Cambiar rol</Text>
+              </Pressable>
             </View>
-            <Pressable hitSlop={8} onPress={handleChangeRole}>
-              <Text style={styles.roleSwitch}>Cambiar rol</Text>
-            </Pressable>
-          </View>
+          </Placard>
         </View>
       </View>
 
       <View style={styles.panel}>
         <View style={styles.panelHeader}>
           <Text style={styles.panelTitle}>Próximas paradas</Text>
-          <Pressable onPress={() => router.push('/(passenger)/eta')}>
-            <Text style={styles.link}>Ver detalle</Text>
+          <Pressable
+            accessibilityRole="button"
+            hitSlop={8}
+            onPress={() => router.push('/(passenger)/eta')}
+            style={styles.detailButton}
+          >
+            <Text style={styles.detailText}>Ver detalle</Text>
           </Pressable>
         </View>
 
@@ -106,6 +125,7 @@ export default function PassengerMapScreen() {
                 key={stopEta.parada.id}
                 stopEta={stopEta}
                 selected={selectedStopId === stopEta.parada.id}
+                highlight={highlightStopId === stopEta.parada.id}
                 onPress={() => setSelectedStopId(stopEta.parada.id)}
               />
             ))
@@ -126,22 +146,8 @@ const styles = StyleSheet.create({
     left: spacing.md,
     right: spacing.md,
   },
-  overlayCard: {
-    backgroundColor: colors.surface,
-    borderRadius: radius.md,
-    padding: spacing.md,
-    gap: spacing.xs,
-    shadowColor: '#000',
-    shadowOpacity: 0.12,
-    shadowRadius: 12,
-    shadowOffset: { width: 0, height: 4 },
-    elevation: 4,
-  },
-  routeName: {
-    flex: 1,
-    color: colors.text,
-    fontSize: font.md,
-    fontWeight: '700',
+  placardContent: {
+    marginVertical: -spacing.xs,
   },
   overlayHeader: {
     flexDirection: 'row',
@@ -149,34 +155,51 @@ const styles = StyleSheet.create({
     justifyContent: 'space-between',
     gap: spacing.sm,
   },
+  routeName: {
+    flex: 1,
+    color: colors.ink,
+    fontFamily: fontFamily.display,
+    fontSize: font.title,
+    lineHeight: 23,
+  },
+  roleSwitchButton: {
+    alignSelf: 'flex-start',
+  },
   roleSwitch: {
-    color: colors.muted,
-    fontSize: font.sm,
-    fontWeight: '600',
+    color: colors.ink,
+    fontSize: font.body,
+    fontWeight: '700',
+    textDecorationLine: 'underline',
   },
   panel: {
     maxHeight: '48%',
-    backgroundColor: colors.background,
-    borderTopLeftRadius: radius.lg,
-    borderTopRightRadius: radius.lg,
-    paddingTop: spacing.md,
+    backgroundColor: colors.ground,
+    paddingTop: spacing.sm,
   },
   panelHeader: {
     flexDirection: 'row',
     alignItems: 'center',
     justifyContent: 'space-between',
     paddingHorizontal: spacing.md,
-    paddingBottom: spacing.sm,
+    paddingBottom: spacing.xs,
   },
   panelTitle: {
-    color: colors.text,
-    fontSize: font.lg,
-    fontWeight: '700',
+    flexShrink: 1,
+    color: colors.ink,
+    fontFamily: fontFamily.display,
+    fontSize: font.headline,
+    lineHeight: 32,
   },
-  link: {
-    color: colors.primary,
-    fontSize: font.sm,
-    fontWeight: '600',
+  detailButton: {
+    justifyContent: 'center',
+    minHeight: 48,
+    paddingLeft: spacing.md,
+  },
+  detailText: {
+    color: colors.ink,
+    fontSize: font.body,
+    fontWeight: '700',
+    textDecorationLine: 'underline',
   },
   list: {
     paddingHorizontal: spacing.md,
@@ -184,9 +207,9 @@ const styles = StyleSheet.create({
     gap: spacing.sm,
   },
   empty: {
-    color: colors.muted,
-    fontSize: font.sm,
-    lineHeight: 20,
+    color: colors.inkMuted,
+    fontSize: font.body,
+    lineHeight: 24,
     paddingVertical: spacing.md,
   },
 });

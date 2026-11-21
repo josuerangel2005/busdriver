@@ -5,7 +5,7 @@ import { colors, font, radius, spacing } from '@/constants/theme';
 type Props = {
   label: string;
   onPress: () => void;
-  variant?: 'primary' | 'secondary' | 'danger';
+  variant?: 'primary' | 'secondary' | 'danger' | 'dangerOutline';
   disabled?: boolean;
   loading?: boolean;
 };
@@ -19,10 +19,17 @@ export function Button({
 }: Props) {
   const isDisabled = disabled || loading;
 
+  const labelColor =
+    variant === 'secondary' || variant === 'dangerOutline'
+      ? variant === 'dangerOutline'
+        ? colors.signRed
+        : colors.ink
+      : colors.surface;
+
   return (
     <Pressable
       accessibilityRole="button"
-      accessibilityState={{ disabled: isDisabled }}
+      accessibilityState={{ disabled: isDisabled, busy: loading }}
       disabled={isDisabled}
       onPress={onPress}
       style={({ pressed }) => [
@@ -33,11 +40,9 @@ export function Button({
       ]}
     >
       {loading ? (
-        <ActivityIndicator color={variant === 'secondary' ? colors.primary : colors.surface} />
+        <ActivityIndicator color={labelColor} />
       ) : (
-        <Text style={[styles.label, variant === 'secondary' && styles.labelSecondary]}>
-          {label}
-        </Text>
+        <Text style={[styles.label, { color: labelColor }]}>{label}</Text>
       )}
     </Pressable>
   );
@@ -46,34 +51,35 @@ export function Button({
 const styles = StyleSheet.create({
   base: {
     minHeight: 52,
-    borderRadius: radius.md,
+    borderRadius: radius.control,
     alignItems: 'center',
     justifyContent: 'center',
     paddingHorizontal: spacing.lg,
   },
   primary: {
-    backgroundColor: colors.primary,
+    backgroundColor: colors.ink,
   },
   secondary: {
-    backgroundColor: colors.surface,
-    borderWidth: 1,
-    borderColor: colors.primary,
+    backgroundColor: 'transparent',
+    borderWidth: 2,
+    borderColor: colors.ink,
   },
   danger: {
-    backgroundColor: colors.danger,
+    backgroundColor: colors.signRed,
+  },
+  dangerOutline: {
+    backgroundColor: 'transparent',
+    borderWidth: 2,
+    borderColor: colors.signRed,
   },
   pressed: {
     opacity: 0.85,
   },
   disabled: {
-    opacity: 0.45,
+    opacity: 0.4,
   },
   label: {
-    color: colors.surface,
-    fontSize: font.md,
-    fontWeight: '600',
-  },
-  labelSecondary: {
-    color: colors.primary,
+    fontSize: font.body,
+    fontWeight: '700',
   },
 });

@@ -6,7 +6,7 @@ import { Badge } from '@/components/Badge';
 import { Button } from '@/components/Button';
 import { EtaCard } from '@/components/EtaCard';
 import { Screen } from '@/components/Screen';
-import { colors, font, radius, spacing } from '@/constants/theme';
+import { colors, font, fontFamily, spacing } from '@/constants/theme';
 import { useNow, usePilotData } from '@/hooks/usePilotData';
 import { computeBestStopEtas } from '@/lib/eta';
 import {
@@ -70,6 +70,11 @@ export default function PassengerEtaScreen() {
     }
     return computeBestStopEtas(ruta, paradas, vehiculos, now);
   }, [ruta, paradas, vehiculos, now]);
+
+  const highlightStopId = useMemo(
+    () => etas.find((stopEta) => !stopEta.pasada)?.parada.id ?? null,
+    [etas],
+  );
 
   function beginWait() {
     if (!selectedStopId) {
@@ -161,13 +166,14 @@ export default function PassengerEtaScreen() {
               key={stopEta.parada.id}
               stopEta={stopEta}
               selected={selectedStopId === stopEta.parada.id}
+              highlight={highlightStopId === stopEta.parada.id}
               onPress={() => setSelectedStopId(stopEta.parada.id)}
             />
           ))
         )}
 
-        <View style={styles.measureCard}>
-          <Text style={styles.cardTitle}>Medición de espera (estudio)</Text>
+        <View style={styles.section}>
+          <Text style={styles.sectionTitle}>Medición de espera (estudio)</Text>
           <Text style={styles.hint}>
             Registra cuánto espera una persona en la parada seleccionada. Los datos son
             anónimos y se guardan solo en este dispositivo.
@@ -183,9 +189,7 @@ export default function PassengerEtaScreen() {
             disabled={!selectedStopId}
             onPress={activeWait ? endWait : beginWait}
           />
-          <Text style={styles.hint}>
-            Mediciones guardadas: {savedCount}
-          </Text>
+          <Text style={styles.count}>Mediciones guardadas: {savedCount}</Text>
           <Button
             label="Exportar CSV anónimo"
             variant="secondary"
@@ -195,8 +199,8 @@ export default function PassengerEtaScreen() {
           />
         </View>
 
-        <View style={styles.measureCard}>
-          <Text style={styles.cardTitle}>Pruebas de campo</Text>
+        <View style={styles.section}>
+          <Text style={styles.sectionTitle}>Pruebas de campo</Text>
           <Text style={styles.hint}>
             Latencia del marcador (meta ≤ 15 s): {latencySummary.total} registros ·
             promedio {formatMs(latencySummary.promedioMs)} · máx{' '}
@@ -260,44 +264,50 @@ function formatPercent(value: number | null): string {
 const styles = StyleSheet.create({
   content: {
     padding: spacing.md,
-    gap: spacing.sm,
+    gap: spacing.md,
     paddingBottom: spacing.xl,
   },
   header: {
     gap: spacing.sm,
   },
   title: {
-    color: colors.text,
-    fontSize: font.xl,
-    fontWeight: '800',
+    color: colors.ink,
+    fontFamily: fontFamily.display,
+    fontSize: font.headline,
+    lineHeight: 32,
   },
   hint: {
-    color: colors.muted,
-    fontSize: font.sm,
-    lineHeight: 20,
+    color: colors.inkMuted,
+    fontSize: font.body,
+    lineHeight: 24,
   },
   empty: {
-    color: colors.muted,
-    fontSize: font.md,
+    color: colors.inkMuted,
+    fontSize: font.body,
+    lineHeight: 24,
     paddingVertical: spacing.lg,
   },
-  measureCard: {
+  section: {
     backgroundColor: colors.surface,
-    borderRadius: radius.md,
-    borderWidth: 1,
-    borderColor: colors.border,
     padding: spacing.md,
     gap: spacing.sm,
     marginTop: spacing.md,
   },
-  cardTitle: {
-    color: colors.text,
-    fontSize: font.md,
-    fontWeight: '700',
+  sectionTitle: {
+    color: colors.ink,
+    fontFamily: fontFamily.display,
+    fontSize: font.title,
+    lineHeight: 24,
   },
   selected: {
-    color: colors.text,
-    fontSize: font.sm,
+    color: colors.ink,
+    fontSize: font.body,
+    lineHeight: 24,
     fontWeight: '600',
+  },
+  count: {
+    color: colors.inkMuted,
+    fontSize: 14,
+    lineHeight: 20,
   },
 });

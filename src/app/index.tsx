@@ -3,9 +3,10 @@ import { useEffect } from 'react';
 import { StyleSheet, Text, View } from 'react-native';
 
 import { Button } from '@/components/Button';
+import { Placard } from '@/components/Placard';
 import { Screen } from '@/components/Screen';
 import { APP_NAME, USE_MOCK } from '@/constants/config';
-import { colors, font, radius, spacing } from '@/constants/theme';
+import { colors, font, fontFamily, spacing } from '@/constants/theme';
 import { useAuthStore } from '@/stores/auth';
 
 export default function RoleSelectionScreen() {
@@ -27,8 +28,10 @@ export default function RoleSelectionScreen() {
   return (
     <Screen>
       <View style={styles.hero}>
-        <View style={styles.logo}>
-          <Text style={styles.logoText}>RC</Text>
+        <View style={styles.mark}>
+          <Placard tone="yellow">
+            <Text style={styles.markText}>RC</Text>
+          </Placard>
         </View>
         <Text style={styles.title}>{APP_NAME}</Text>
         <Text style={styles.subtitle}>
@@ -61,40 +64,38 @@ const styles = StyleSheet.create({
     alignItems: 'center',
     gap: spacing.md,
   },
-  logo: {
-    width: 88,
-    height: 88,
-    borderRadius: radius.lg,
-    backgroundColor: colors.primary,
+  mark: {
     alignItems: 'center',
-    justifyContent: 'center',
   },
-  logoText: {
-    color: colors.surface,
-    fontSize: font.xxl,
-    fontWeight: '800',
+  markText: {
+    color: colors.ink,
+    fontFamily: fontFamily.display,
+    fontSize: 44,
+    lineHeight: 48,
+    includeFontPadding: false,
   },
   title: {
-    color: colors.text,
-    fontSize: font.xxl,
-    fontWeight: '800',
+    color: colors.ink,
+    fontFamily: fontFamily.display,
+    fontSize: font.display,
+    lineHeight: 44,
     textAlign: 'center',
   },
   subtitle: {
-    color: colors.muted,
-    fontSize: font.md,
+    color: colors.inkMuted,
+    fontSize: font.body,
     textAlign: 'center',
-    lineHeight: 22,
-    paddingHorizontal: spacing.md,
+    lineHeight: 24,
   },
   actions: {
+    alignSelf: 'stretch',
     gap: spacing.sm,
     paddingBottom: spacing.xl,
   },
   note: {
-    color: colors.muted,
-    fontSize: font.sm,
+    color: colors.inkMuted,
+    fontSize: 14,
+    lineHeight: 20,
     textAlign: 'center',
-    paddingHorizontal: spacing.md,
   },
 });
