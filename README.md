@@ -42,6 +42,14 @@ Para generar el build nativo en la nube:
 npx eas build --profile development --platform android
 ```
 
+### Versión de Kotlin en Android
+
+El build de Android fija `android.kotlinVersion` en `2.3.21` dentro del plugin
+`expo-build-properties` de `app.json`. Firebase Auth 25 se compila con Kotlin 2.4,
+cuya metadata rechaza el compilador por defecto de Expo (2.2), y el
+`pika-compiler` de Expo todavía no tiene una versión 2.4.21. Puedes quitar ese
+pin cuando el Kotlin por defecto de Expo lea metadata 2.4.
+
 ## Puesta en marcha con Firebase
 
 1. Crea un proyecto en la consola de Firebase.

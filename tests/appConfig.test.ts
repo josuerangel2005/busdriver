@@ -91,6 +91,23 @@ describe('applyFirebaseMode', () => {
     expect(result).toEqual(fixture);
   });
 
+  it('keeps the pinned Kotlin version and static iOS frameworks in mock mode', () => {
+    const result = applyFirebaseMode(firebaseFixture(), true, () => false);
+
+    const buildProperties = (result.plugins ?? []).find(
+      (plugin) => pluginName(plugin) === 'expo-build-properties',
+    );
+
+    expect(Array.isArray(buildProperties)).toBe(true);
+
+    const options = (
+      buildProperties as [string, { android?: { kotlinVersion?: string }; ios?: { useFrameworks?: string } }]
+    )[1];
+
+    expect(options.android?.kotlinVersion).toBe('2.3.21');
+    expect(options.ios?.useFrameworks).toBe('static');
+  });
+
   it('throws a Spanish error naming google-services.json when the Android file is missing', () => {
     const fixture = firebaseFixture();
 

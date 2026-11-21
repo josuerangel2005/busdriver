@@ -11,6 +11,7 @@ import { colors, font, radius, spacing } from '@/constants/theme';
 import { PLACEHOLDER_ROUTE } from '@/data/seed';
 import { clearFieldLogs, exportFieldLogCsv, listPings } from '@/lib/fieldLog';
 import { summarizePings } from '@/lib/fieldTest';
+import { canSwitchRole } from '@/lib/roleSwitch';
 import { getRepository } from '@/services/repository';
 import { beginShift, endShift } from '@/services/shift';
 import {
@@ -24,6 +25,7 @@ import { useTrackingStore } from '@/stores/tracking';
 export default function ShiftScreen() {
   const router = useRouter();
   const uid = useAuthStore((state) => state.uid);
+  const role = useAuthStore((state) => state.role);
   const { active, loading, refresh, setActive } = useTrackingStore();
   const [checking, setChecking] = useState(true);
   const [working, setWorking] = useState(false);
@@ -136,6 +138,16 @@ export default function ShiftScreen() {
     }
   }
 
+  async function handleChangeRole() {
+    const check = canSwitchRole({ role, shiftActive: active });
+    if (!check.allowed) {
+      Alert.alert('Cambiar rol', check.reason ?? '');
+      return;
+    }
+    await useAuthStore.getState().signOut();
+    router.replace('/');
+  }
+
   async function handleExportPings() {
     setExportingPings(true);
     try {
@@ -200,10 +212,12 @@ export default function ShiftScreen() {
           <Text style={styles.cardTitle}>Transmisión</Text>
           <Text style={styles.muted}>
             {active
-              ? 'La ubicación se está compartiendo en segundo plano. Puedes bloquear el teléfono.'
+              ? USE_MOCK
+                ? 'Turno activo en modo simulado: tu buseta avanza sola por la ruta. No se usa el GPS ni se transmite tu ubicación.'
+                : 'La ubicación se está compartiendo en segundo plano. Puedes bloquear el teléfono.'
               : 'Inicia el turno para compartir tu ubicación con los pasajeros.'}
           </Text>
-          {USE_MOCK ? (
+          {USE_MOCK && !active ? (
             <Text style={styles.muted}>
               Modo simulado: la buseta avanza sola por la ruta, no se usa el GPS del teléfono.
             </Text>
@@ -253,9 +267,9 @@ export default function ShiftScreen() {
         />
 
         <Button
-          label="Volver al inicio"
+          label="Cambiar rol"
           variant="secondary"
-          onPress={() => router.replace('/')}
+          onPress={handleChangeRole}
         />
       </ScrollView>
     </Screen>

@@ -9,12 +9,18 @@ import { Screen } from '@/components/Screen';
 import { colors, font, radius, spacing } from '@/constants/theme';
 import { useNow, usePilotData } from '@/hooks/usePilotData';
 import { computeBestStopEtas, isStale } from '@/lib/eta';
+import { useAuthStore } from '@/stores/auth';
 
 export default function PassengerMapScreen() {
   const router = useRouter();
   const { ruta, paradas, vehiculos } = usePilotData();
   const now = useNow(5_000);
   const [selectedStopId, setSelectedStopId] = useState<string | null>(null);
+
+  async function handleChangeRole() {
+    await useAuthStore.getState().signOut();
+    router.replace('/');
+  }
 
   const activeVehicles = useMemo(
     () => vehiculos.filter((vehiculo) => vehiculo.en_servicio),
@@ -55,19 +61,24 @@ export default function PassengerMapScreen() {
 
         <View style={styles.overlay}>
           <View style={styles.overlayCard}>
-            <Text style={styles.routeName} numberOfLines={1}>
-              {ruta?.nombre ?? 'Cargando ruta…'}
-            </Text>
-            <Badge
-              label={
-                !hasVehicle
-                  ? 'Sin unidades'
-                  : stale
-                    ? 'Datos desactualizados'
-                    : 'En servicio'
-              }
-              tone={!hasVehicle ? 'neutral' : stale ? 'danger' : 'success'}
-            />
+            <View style={styles.overlayHeader}>
+              <Text style={styles.routeName} numberOfLines={1}>
+                {ruta?.nombre ?? 'Cargando ruta…'}
+              </Text>
+              <Badge
+                label={
+                  !hasVehicle
+                    ? 'Sin unidades'
+                    : stale
+                      ? 'Datos desactualizados'
+                      : 'En servicio'
+                }
+                tone={!hasVehicle ? 'neutral' : stale ? 'danger' : 'success'}
+              />
+            </View>
+            <Pressable hitSlop={8} onPress={handleChangeRole}>
+              <Text style={styles.roleSwitch}>Cambiar rol</Text>
+            </Pressable>
           </View>
         </View>
       </View>
@@ -127,9 +138,21 @@ const styles = StyleSheet.create({
     elevation: 4,
   },
   routeName: {
+    flex: 1,
     color: colors.text,
     fontSize: font.md,
     fontWeight: '700',
+  },
+  overlayHeader: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    justifyContent: 'space-between',
+    gap: spacing.sm,
+  },
+  roleSwitch: {
+    color: colors.muted,
+    fontSize: font.sm,
+    fontWeight: '600',
   },
   panel: {
     maxHeight: '48%',
