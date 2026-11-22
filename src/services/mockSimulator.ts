@@ -53,11 +53,18 @@ export function isInSignalLoss(vehicle: SimVehicle, elapsedMs: number): boolean 
   return cycleMs >= signalLossEveryMs - signalLossDurationMs;
 }
 
-const HEADWAY_MINUTES: Record<string, number> = {
-  'directo-cucuta': 8,
-  'campo-verde': 17,
-  natura: 17,
-};
+const HEADWAY_MINUTES = new Map<string, number>([
+  ['directo-cucuta', 8],
+  ['campo-verde', 17],
+  ['natura', 17],
+  ['ruta-1-claret-campus', 120],
+]);
+const DEFAULT_HEADWAY_MINUTES = 17;
+
+export function demoHeadwayMinutes(lineId: string): number {
+  return HEADWAY_MINUTES.get(lineId) ?? DEFAULT_HEADWAY_MINUTES;
+}
+
 export const DEMO_SPEED_MPS = 7;
 
 // Even spacing around the round trip approximates each published headway.
@@ -66,7 +73,7 @@ export const DEMO_VEHICLES: SimVehicle[] = ROUTES.filter((route) => route.sentid
     const length = lengths.get(route.id)!;
     const reverse = oppositeRoute(bundledCatalog, route)!;
     const roundTripKm = length + lengths.get(reverse.id)!;
-    const headwaySeconds = HEADWAY_MINUTES[route.linea_id] * 60;
+    const headwaySeconds = demoHeadwayMinutes(route.linea_id) * 60;
     const headwayKm = (headwaySeconds * DEMO_SPEED_MPS) / 1_000;
     const count = Math.max(2, Math.round(roundTripKm / headwayKm));
     const speedMps = (roundTripKm * 1_000) / (count * headwaySeconds);

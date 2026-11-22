@@ -5,6 +5,7 @@ import { routeLengthKm } from '@/lib/geo';
 import {
   advanceVehicle,
   DEMO_VEHICLES,
+  demoHeadwayMinutes,
   isInSignalLoss,
   positionAt,
   type SimVehicle,
@@ -93,4 +94,23 @@ describe('DEMO_VEHICLES', () => {
       signalLossDurationMs: 45_000,
     });
   });
+});
+
+it('uses the simulated 120-minute Claret headway over its asymmetric round trip', () => {
+  const ida = findRoute(bundledCatalog, 'ruta-1-claret-campus-ida')!;
+  const vuelta = findRoute(bundledCatalog, 'ruta-1-claret-campus-vuelta')!;
+  const fleet = DEMO_VEHICLES.filter((bus) => bus.rutaId === ida.id || bus.rutaId === vuelta.id);
+  expect(fleet).toHaveLength(2);
+  const roundTripKm = routeLengthKm(ida) + routeLengthKm(vuelta);
+  for (const bus of fleet) {
+    expect(roundTripKm * 1000 / fleet.length / bus.speedMps / 60).toBeCloseTo(120);
+  }
+});
+
+it('uses a finite positive demo headway for unknown line ids', () => {
+  for (const lineId of ['unknown', 'constructor']) {
+    const minutes = demoHeadwayMinutes(lineId);
+    expect(Number.isFinite(minutes)).toBe(true);
+    expect(minutes).toBeGreaterThan(0);
+  }
 });

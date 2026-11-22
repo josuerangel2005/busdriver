@@ -9,11 +9,15 @@ import { advanceVehicle, positionAt } from '@/services/mockSimulator';
 import { mockRepository } from '@/services/mockRepository';
 import { changeShiftDirection } from '@/services/shift';
 
-it('lists six directions and pairs their ordered stops and exact reverse geometry', () => {
+const CLARET_LINE_ID = 'ruta-1-claret-campus';
+
+it('lists four lines and validates stops and geometry for both directions', () => {
   const routes = vi.fn();
   mockRepository.subscribeRoutes(routes)();
   expect(routes).toHaveBeenCalledWith(seed.ROUTES);
-  expect(seed.ROUTES).toHaveLength(6);
+  expect(new Set(seed.ROUTES.map((route) => route.linea_id)).size).toBe(4);
+  expect(seed.ROUTES).toHaveLength(8);
+  expect(seed.PARADAS).toHaveLength(57);
   for (const route of seed.ROUTES) {
     const stops = seed.PARADAS.filter((stop) => stop.ruta_id === route.id);
     expect(route.id).toBe(`${route.linea_id}-${route.sentido}`);
@@ -27,6 +31,20 @@ it('lists six directions and pairs their ordered stops and exact reverse geometr
       previous = snap.alongKm;
     });
     const reverse = seed.ROUTES.find((other) => other.linea_id === route.linea_id && other.sentido !== route.sentido);
+    expect(reverse).toBeDefined();
+    // The Claret poster specifies a separate return alignment and stop list.
+    if (route.linea_id === CLARET_LINE_ID) {
+      expect(reverse?.polyline).not.toEqual([...route.polyline].reverse());
+      if (route.sentido === 'vuelta') {
+        expect(stops.map((stop) => stop.nombre)).toEqual([
+          'Campus Villa del Rosario', 'Puente Peatonal - Lomitas', 'Toyota',
+          'Redoma San Mateo', 'Frente al Ventura Plaza', 'Fuente Luminosa',
+          'CREAD - Plaza de Banderas', 'Terminal de Transportes', 'Redoma El Palustre',
+          'Redoma El Claret',
+        ]);
+      }
+      continue;
+    }
     expect(reverse?.polyline).toEqual([...route.polyline].reverse());
     expect(seed.PARADAS.filter((stop) => stop.ruta_id === reverse?.id).map((stop) => stop.nombre))
       .toEqual(stops.map((stop) => stop.nombre).reverse());

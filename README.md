@@ -33,7 +33,7 @@ Firebase (Auth anónima + Realtime Database), expo-location + expo-task-manager,
 
 ## Puesta en marcha (modo simulado)
 
-El modo simulado no necesita Firebase: las busetas recorren las tres líneas, alternan
+El modo simulado no necesita Firebase: las busetas recorren las cuatro líneas, alternan
 ida y vuelta al llegar a cada terminal y actualizan su posición cada 3 segundos.
 La separación inicial aproxima 8 min en Directo Cúcuta y 17 min en Campo Verde y Natura. La buseta `demo-buseta-3` pierde la señal
 45 s cada 3 min para que se vea el estado **desactualizado** durante más tiempo
@@ -309,6 +309,26 @@ Todas las paradas son referencias no oficiales.
 | Directo Cúcuta | 5:30 a. m. | 5:38 p. m. | 6–10 min |
 | Campo Verde | 5:15 a. m. | 6:40 p. m. | 15–20 min |
 | Natura – Vista Hermosa | 5:30 a. m. | 6:35 p. m. | 15–20 min |
+
+**Ruta 1 Claret – Campus** se digitalizó a partir del afiche **Ruta 1 Redoma
+Claret – Campus Villa del Rosario**, publicado por **Apoyo al Estudiante UP**
+(imagen proporcionada por el usuario el 22 de noviembre de 2026). El equipo
+ubicó las paradas con OpenStreetMap/Nominatim y por inspección visual de un mapa
+base de OpenStreetMap. Piscina Atalaya, Redoma El Palustre, Redoma San Mateo,
+Terpel - Sierra Nevada, Puente Peatonal - Lomitas y Toyota tienen ubicaciones
+aproximadas. El tramo de la Autopista reutiliza el trazado de Directo Cúcuta.
+La parada del campus está sobre la Autopista, frente al campus, a unos 250 m
+de su centroide. La ida y la vuelta tienen recorridos y paradas distintos; la
+app muestra la etiqueta **Trazado aproximado**.
+
+| Días | Salida de Redoma El Claret | Salida de Villa del Rosario |
+| --- | --- | --- |
+| Lunes a viernes | 5:30, 7:00, 9:00 y 11:00 a. m.; 1:00, 3:00 y 5:00 p. m. | 6:10, 8:10 y 10:10 a. m.; 12:10, 2:10, 4:10, 6:10 y 7:10 p. m. |
+| Sábado | 5:20, 7:00, 9:00 y 11:00 a. m.; 1:00 p. m. | 6:10, 8:10 y 10:10 a. m.; 12:10 y 2:10 p. m. |
+
+**Limitación del editor:** si un administrador guarda cambios en esta línea
+desde el editor de la app, este regenera la vuelta invirtiendo la ida y
+reemplaza tanto su trazado como sus paradas propias.
 
 ## Limitaciones conocidas
 
