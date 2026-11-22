@@ -11,7 +11,8 @@ import { RouteSelector } from '@/components/RouteSelector';
 import { Screen } from '@/components/Screen';
 import { DEFAULT_ROUTE_ID, UPDATE_INTERVAL_MS, USE_MOCK } from '@/constants/config';
 import { colors, font, fontFamily, spacing } from '@/constants/theme';
-import { findRoute, oppositeRoute } from '@/data/seed';
+import { findRoute, oppositeRoute } from '@/lib/routeCatalog';
+import { resolveRouteId } from '@/lib/routeSelection';
 import { clearFieldLogs, exportFieldLogCsv, listPings } from '@/lib/fieldLog';
 import { summarizePings } from '@/lib/fieldTest';
 import { canSwitchRole } from '@/lib/roleSwitch';
@@ -24,6 +25,7 @@ import {
   updateTrackingDirection,
 } from '@/services/tracking';
 import { useAuthStore } from '@/stores/auth';
+import { useRouteCatalog } from '@/stores/routeCatalog';
 import { useTrackingStore } from '@/stores/tracking';
 
 export default function ShiftScreen() {
@@ -34,8 +36,10 @@ export default function ShiftScreen() {
   const { active, session, loading, refresh, setActive } = useTrackingStore();
   const [checking, setChecking] = useState(true);
   const [routeId, setRouteId] = useState(DEFAULT_ROUTE_ID);
-  const route = findRoute(active ? session?.rutaId : routeId);
-  const reverse = route && oppositeRoute(route);
+  const { catalog, ready } = useRouteCatalog();
+  const selectedId = active ? session?.rutaId : resolveRouteId(routeId, catalog);
+  const route = ready ? findRoute(catalog, selectedId) : undefined;
+  const reverse = route && oppositeRoute(catalog, route);
   const [working, setWorking] = useState(false);
   const [pings, setPings] = useState(() => listPings());
   const [exportingPings, setExportingPings] = useState(false);
@@ -132,7 +136,7 @@ export default function ShiftScreen() {
         const publish = () => getRepository().setVehicleRoute(nextSession.vehiculoId, nextSession.rutaId);
         if (USE_MOCK) await publish();
         else await updateTrackingDirection(session, nextSession, publish);
-      }, session, reverse.id);
+      }, session, reverse.id, useRouteCatalog.getState().catalog);
       setRouteId(next.rutaId);
       setActive(true, next);
     } catch (error) {
@@ -324,6 +328,7 @@ export default function ShiftScreen() {
           label={active ? 'Finalizar turno' : 'Iniciar turno'}
           variant={active ? 'danger' : 'primary'}
           loading={working}
+          disabled={!active && !route}
           onPress={active ? handleEndShift : handleBeginShift}
         />
       </View>

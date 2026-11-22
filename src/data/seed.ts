@@ -13,11 +13,3 @@ export const PARADAS: Parada[] = Object.entries(seed.paradas).map(([id, stop]) =
   id,
   ...stop,
 }));
-
-export function findRoute(id: string | undefined): Ruta | undefined {
-  return ROUTES.find((route) => route.id === id);
-}
-
-export function oppositeRoute(route: Ruta): Ruta | undefined {
-  return ROUTES.find((other) => other.linea_id === route.linea_id && other.sentido !== route.sentido);
-}

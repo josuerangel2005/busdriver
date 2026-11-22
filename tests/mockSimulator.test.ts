@@ -1,6 +1,6 @@
 import { describe, expect, it } from 'vitest';
 
-import { findRoute } from '@/data/seed';
+import { bundledCatalog, findRoute } from '@/lib/routeCatalog';
 import { routeLengthKm } from '@/lib/geo';
 import {
   advanceVehicle,
@@ -10,7 +10,7 @@ import {
   type SimVehicle,
 } from '@/services/mockSimulator';
 
-const directRoute = findRoute('directo-cucuta-ida')!;
+const directRoute = findRoute(bundledCatalog, 'directo-cucuta-ida')!;
 
 describe('advanceVehicle', () => {
   it('advances by speed multiplied by elapsed time', () => {
@@ -71,10 +71,10 @@ describe('DEMO_VEHICLES', () => {
   it('spaces the fleet around each round trip near its published headway', () => {
     const headways = { 'directo-cucuta': [6, 10], 'campo-verde': [15, 20], natura: [15, 20] } as const;
     for (const [id, [min, max]] of Object.entries(headways)) {
-      const ida = findRoute(`${id}-ida`)!;
+      const ida = findRoute(bundledCatalog, `${id}-ida`)!;
       const length = routeLengthKm(ida);
-      const roundTripKm = length + routeLengthKm(findRoute(`${id}-vuelta`)!);
-      const fleet = DEMO_VEHICLES.filter((bus) => findRoute(bus.rutaId)?.linea_id === id);
+      const roundTripKm = length + routeLengthKm(findRoute(bundledCatalog, `${id}-vuelta`)!);
+      const fleet = DEMO_VEHICLES.filter((bus) => findRoute(bundledCatalog, bus.rutaId)?.linea_id === id);
       expect(fleet.some((bus) => bus.rutaId === ida.id)).toBe(true);
       expect(fleet.some((bus) => bus.rutaId !== ida.id)).toBe(true);
       fleet.forEach((bus, index) => {

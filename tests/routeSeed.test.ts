@@ -2,9 +2,9 @@ import { expect, it } from 'vitest';
 
 import firebaseSeed from '../firebase/seed.json';
 
-import { findRoute } from '@/data/seed';
+import { bundledCatalog, findRoute } from '@/lib/routeCatalog';
 
-const directRoute = findRoute('directo-cucuta-ida')!;
+const directRoute = findRoute(bundledCatalog, 'directo-cucuta-ida')!;
 
 it('uses the same direction record in the demo and Firebase seeds', () => {
   expect(directRoute.linea_nombre).toBe('Directo Cúcuta');

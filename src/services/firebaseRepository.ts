@@ -50,6 +50,16 @@ export const firebaseRepository: Repository = {
   subscribeRoutes(onData): Unsubscribe {
     return onValue(ref(db(), 'rutas'), (snapshot: DataSnapshot) => {
       onData(toList<Ruta>(snapshot.val()));
+    }, () => {
+      // The catalog retains its offline data if reads are unavailable.
+    });
+  },
+
+  subscribeAllStops(onData): Unsubscribe {
+    return onValue(ref(db(), 'paradas'), (snapshot: DataSnapshot) => {
+      onData(toList<Parada>(snapshot.val()));
+    }, () => {
+      // The catalog retains its offline data if reads are unavailable.
     });
   },
 

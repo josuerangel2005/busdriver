@@ -24,8 +24,6 @@ import {
 } from '@/lib/fieldTest';
 import { exportWaitsCsv, finishWait, listWaits, startWait } from '@/lib/metrics';
 
-import { resolveRouteId } from '@/lib/routeSelection';
-
 type ActiveTrial = {
   waitId: string;
   paradaId: string;
@@ -37,7 +35,7 @@ type ActiveTrial = {
 export default function PassengerEtaScreen() {
   const router = useRouter();
   const { routeId } = useLocalSearchParams<{ routeId?: string }>();
-  const { ruta, paradas, vehiculos } = useRouteData(resolveRouteId(routeId));
+  const { ruta, paradas, vehiculos } = useRouteData(routeId);
   const now = useNow(5_000);
   const [selectedStopId, setSelectedStopId] = useState<string | null>(null);
   const [activeTrial, setActiveTrial] = useState<ActiveTrial | null>(null);

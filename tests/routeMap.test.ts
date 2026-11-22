@@ -4,9 +4,9 @@ import { describe, expect, it, vi } from 'vitest';
 
 import { spacing } from '@/constants/theme';
 import { RouteMap } from '@/components/RouteMap';
-import { findRoute } from '@/data/seed';
+import { bundledCatalog, findRoute } from '@/lib/routeCatalog';
 
-const directRoute = findRoute('directo-cucuta-ida')!;
+const directRoute = findRoute(bundledCatalog, 'directo-cucuta-ida')!;
 
 vi.mock('@maplibre/maplibre-react-native', () => ({
   Camera: () => null,
@@ -64,7 +64,7 @@ describe('RouteMap camera', () => {
 
   it('recreates the camera when switching directions with the same route bounds', () => {
     const outbound = routeCamera(directRoute);
-    const inbound = routeCamera(findRoute('directo-cucuta-vuelta')!);
+    const inbound = routeCamera(findRoute(bundledCatalog, 'directo-cucuta-vuelta')!);
     if (!('bounds' in outbound.props)) throw new Error('Outbound bounds not rendered');
     expect(inbound.props).toMatchObject({ bounds: outbound.props.bounds });
     expect(inbound.key).not.toBe(outbound.key);

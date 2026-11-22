@@ -1,11 +1,11 @@
 import { afterEach, beforeEach, describe, expect, it, vi } from 'vitest';
 
-import { findRoute } from '@/data/seed';
+import { bundledCatalog, findRoute } from '@/lib/routeCatalog';
 import { mockRepository, resetMockState } from '@/services/mockRepository';
 import { DEMO_VEHICLES } from '@/services/mockSimulator';
 import type { VehiculoActivo } from '@/types/models';
 
-const directRoute = findRoute('directo-cucuta-ida')!;
+const directRoute = findRoute(bundledCatalog, 'directo-cucuta-ida')!;
 
 const DEMO_IDS = DEMO_VEHICLES.map((bus) => bus.vehiculo_id).sort();
 
@@ -122,7 +122,7 @@ describe('mockRepository vehicle simulation', () => {
 
   it('publishes a driver direction change without ending service or moving the bus immediately', async () => {
     const { snapshots } = captureVehicles();
-    const route = findRoute('campo-verde-ida')!;
+    const route = findRoute(bundledCatalog, 'campo-verde-ida')!;
     const terminus = route.polyline.at(-1)!;
     const bus = {
       vehiculo_id: 'driver',

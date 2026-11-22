@@ -28,6 +28,7 @@ export const MAP_STYLE_URL =
 
 export const STORAGE_KEYS = {
   passengerRoute: 'passenger_route',
+  routeCatalog: 'route_catalog_v1',
   trackingSession: 'tracking_session',
   lastPing: 'tracking_last_ping',
   uid: 'auth_uid',

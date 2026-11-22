@@ -8,6 +8,7 @@ export type Ruta = {
   linea_id: string;
   linea_nombre: string;
   sentido: Sentido;
+  activa?: boolean;
   polyline: LatLng[];
 };
 

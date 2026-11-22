@@ -15,6 +15,7 @@ export type Repository = {
     onError?: (error: Error) => void,
   ): Unsubscribe;
   subscribeRoutes(onData: (rutas: Ruta[]) => void): Unsubscribe;
+  subscribeAllStops(onData: (paradas: Parada[]) => void): Unsubscribe;
   subscribeRoute(routeId: string, onData: (ruta: Ruta | null) => void): Unsubscribe;
   subscribeStops(routeId: string, onData: (paradas: Parada[]) => void): Unsubscribe;
   publishVehicle(vehiculo: VehiculoActivo): Promise<void>;

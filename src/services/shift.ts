@@ -1,4 +1,4 @@
-import { findRoute, oppositeRoute } from '@/data/seed';
+import { bundledCatalog, findRoute, oppositeRoute, type CatalogData } from '@/lib/routeCatalog';
 import type { VehiculoActivo } from '@/types/models';
 
 import type { TrackingSession } from './tracking';
@@ -61,9 +61,10 @@ export async function changeShiftDirection(
   updateDirection: (session: TrackingSession) => Promise<void>,
   session: TrackingSession,
   routeId: string,
+  catalog: CatalogData = bundledCatalog,
 ): Promise<TrackingSession> {
-  const current = findRoute(session.rutaId);
-  if (!current || oppositeRoute(current)?.id !== routeId) {
+  const current = findRoute(catalog, session.rutaId);
+  if (!current || oppositeRoute(catalog, current)?.id !== routeId) {
     throw new Error('Solo puedes cambiar el sentido de la línea en servicio.');
   }
   const next = { ...session, rutaId: routeId };

@@ -233,3 +233,11 @@ Todas las paradas son referencias no oficiales.
   API key); puedes cambiarlo con `EXPO_PUBLIC_MAP_STYLE_URL`.
 - Las métricas se guardan localmente en SQLite; el CSV se comparte desde el
   dispositivo y no incluye datos personales.
+
+## Catálogo de rutas sin conexión
+
+En modo Firebase, la app lee las rutas de `rutas` y las paradas de `paradas`.
+Al iniciar, usa la última copia válida guardada en el dispositivo o, si no existe,
+el catálogo incluido en la app. Cuando llega un catálogo válido de Firebase, la
+app actualiza la copia local. Las rutas inactivas no aparecen en los selectores.
+El modo simulado siempre usa el catálogo incluido.

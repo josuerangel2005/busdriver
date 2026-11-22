@@ -1,5 +1,6 @@
 import { DEFAULT_ROUTE_ID } from '@/constants/config';
-import { findRoute, PARADAS, ROUTES } from '@/data/seed';
+import { PARADAS, ROUTES } from '@/data/seed';
+import { bundledCatalog, findRoute } from '@/lib/routeCatalog';
 import { routeLengthKm, snapToRoute } from '@/lib/geo';
 import type {
   Consentimiento,
@@ -20,7 +21,7 @@ import {
 import type { Repository, Unsubscribe } from './repository';
 
 const SIMULATOR_TICK_MS = 3_000;
-const defaultRoute = findRoute(DEFAULT_ROUTE_ID)!;
+const defaultRoute = findRoute(bundledCatalog, DEFAULT_ROUTE_ID)!;
 
 const DEMO_IDS = new Set(DEMO_VEHICLES.map((vehicle) => vehicle.vehiculo_id));
 
@@ -80,7 +81,7 @@ function tick() {
       continue;
     }
 
-    const route = findRoute(simVehicle.rutaId);
+    const route = findRoute(bundledCatalog, simVehicle.rutaId);
     if (!route) continue;
 
     const advanced = isDemoVehicle(vehiculoId)
@@ -94,7 +95,7 @@ function tick() {
         };
     simVehicles.set(vehiculoId, advanced);
 
-    const position = positionAt(findRoute(advanced.rutaId)!, advanced.progressKm);
+    const position = positionAt(findRoute(bundledCatalog, advanced.rutaId)!, advanced.progressKm);
     vehicles.set(vehiculoId, {
       ...current,
       ruta_activa: advanced.rutaId,
@@ -139,7 +140,7 @@ function seedDemoVehicles() {
     const simVehicle: SimVehicle = { ...demo };
     simVehicles.set(demo.vehiculo_id, simVehicle);
 
-    const position = positionAt(findRoute(demo.rutaId)!, simVehicle.progressKm);
+    const position = positionAt(findRoute(bundledCatalog, demo.rutaId)!, simVehicle.progressKm);
     vehicles.set(demo.vehiculo_id, {
       vehiculo_id: demo.vehiculo_id,
       lat: position.lat,
@@ -153,7 +154,7 @@ function seedDemoVehicles() {
 }
 
 function registerDriverVehicle(vehiculo: VehiculoActivo) {
-  const route = findRoute(vehiculo.ruta_activa);
+  const route = findRoute(bundledCatalog, vehiculo.ruta_activa);
   if (!route) return;
   const snap = snapToRoute(route, {
     latitude: vehiculo.lat,
@@ -201,8 +202,13 @@ export const mockRepository: Repository = {
     return () => undefined;
   },
 
+  subscribeAllStops(onData): Unsubscribe {
+    onData(PARADAS);
+    return () => undefined;
+  },
+
   subscribeRoute(routeId, onData): Unsubscribe {
-    onData(findRoute(routeId) ?? null);
+    onData(findRoute(bundledCatalog, routeId) ?? null);
     return () => undefined;
   },
 

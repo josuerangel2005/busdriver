@@ -11,29 +11,25 @@ import { RouteSelector } from '@/components/RouteSelector';
 import { Screen } from '@/components/Screen';
 import { DEFAULT_ROUTE_ID } from '@/constants/config';
 import { colors, font, fontFamily, spacing } from '@/constants/theme';
-import { findRoute, PARADAS } from '@/data/seed';
 import { useNow, useRouteData } from '@/hooks/useRouteData';
 import { computeBestStopEtas, isStale } from '@/lib/eta';
-import { loadPassengerRoute, savePassengerRoute } from '@/lib/routeSelection';
+import { readPassengerSelection, savePassengerRoute, type RouteSelection } from '@/lib/routeSelection';
 import { useAuthStore } from '@/stores/auth';
 
 export default function PassengerMapScreen() {
   const router = useRouter();
-  const [routeId, setRouteId] = useState(DEFAULT_ROUTE_ID);
+  const [selection, setSelection] = useState<RouteSelection>({ id: DEFAULT_ROUTE_ID });
   const [restoring, setRestoring] = useState(true);
   const [placardHeight, setPlacardHeight] = useState<number>();
-  const { ruta, paradas, vehiculos } = useRouteData(routeId);
-  const selectedRoute = ruta ?? findRoute(routeId)!;
-  const destination = paradas[paradas.length - 1] ?? PARADAS.reduce<(typeof PARADAS)[number] | undefined>(
-    (last, stop) => stop.ruta_id === routeId && (!last || stop.orden > last.orden) ? stop : last,
-    undefined,
-  );
+  const { ruta, paradas, vehiculos } = useRouteData(selection.id, selection.lineId);
+  const routeId = ruta?.id;
+  const destination = paradas.at(-1);
 
   useEffect(() => {
     let mounted = true;
-    void loadPassengerRoute(AsyncStorage).then((savedId) => {
+    void readPassengerSelection(AsyncStorage).then((saved) => {
       if (mounted) {
-        setRouteId(savedId);
+        setSelection(saved);
         setRestoring(false);
       }
     });
@@ -84,16 +80,18 @@ export default function PassengerMapScreen() {
               <Text accessibilityRole="header" numberOfLines={1} ellipsizeMode="tail" style={styles.routeName}>
                 {destination ? `Hacia ${destination.nombre}` : 'Destino no disponible'}
               </Text>
-              <RouteSelector
-                route={selectedRoute}
-                disabled={restoring}
-                onSelect={(route) => {
-                  if (route.id === routeId) return;
-                  setSelectedStopId(null);
-                  setRouteId(route.id);
-                  void savePassengerRoute(AsyncStorage, route.id);
-                }}
-              />
+              {ruta && (
+                <RouteSelector
+                  route={ruta}
+                  disabled={restoring}
+                  onSelect={(route) => {
+                    if (route.id === routeId) return;
+                    setSelectedStopId(null);
+                    setSelection({ id: route.id, lineId: route.linea_id });
+                    void savePassengerRoute(AsyncStorage, route.id, route.linea_id);
+                  }}
+                />
+              )}
               <View style={styles.metaRow}>
                 <Text style={styles.traceNote}>Trazado aproximado</Text>
                 <View>
@@ -117,7 +115,7 @@ export default function PassengerMapScreen() {
           <Pressable
             accessibilityRole="button"
             hitSlop={8}
-            disabled={restoring}
+            disabled={restoring || !routeId}
             onPress={() => router.push({ pathname: '/(passenger)/eta', params: { routeId } })}
             style={styles.detailButton}
           >

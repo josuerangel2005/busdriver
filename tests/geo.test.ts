@@ -1,9 +1,10 @@
 import { describe, expect, it } from 'vitest';
 
-import { findRoute, PARADAS } from '@/data/seed';
+import { PARADAS } from '@/data/seed';
+import { bundledCatalog, findRoute } from '@/lib/routeCatalog';
 import { distanceBetweenM, routeLengthKm, snapToRoute } from '@/lib/geo';
 
-const directRoute = findRoute('directo-cucuta-ida')!;
+const directRoute = findRoute(bundledCatalog, 'directo-cucuta-ida')!;
 const directStops = PARADAS.filter((stop) => stop.ruta_id === directRoute.id);
 
 describe('route helpers', () => {

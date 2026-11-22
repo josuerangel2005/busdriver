@@ -4,23 +4,16 @@ import { DEFAULT_ROUTE_ID } from '@/constants/config';
 import { vehiclesForRoute } from '@/lib/eta';
 import { logLatency } from '@/lib/fieldLog';
 import { createLatencyTracker } from '@/lib/fieldTest';
+import { findRoute, stopsFor } from '@/lib/routeCatalog';
+import { resolveRouteId } from '@/lib/routeSelection';
 import { getRepository } from '@/services/repository';
-import type { Parada, Ruta, VehiculoActivo } from '@/types/models';
+import { useRouteCatalog } from '@/stores/routeCatalog';
+import type { VehiculoActivo } from '@/types/models';
 
-export function useRouteData(routeId: string = DEFAULT_ROUTE_ID) {
-  const [ruta, setRuta] = useState<Ruta | null>(null);
-  const [paradas, setParadas] = useState<Parada[]>([]);
+export function useRouteData(routeId: string = DEFAULT_ROUTE_ID, lineId?: string) {
+  const { catalog, ready } = useRouteCatalog();
+  const effectiveId = resolveRouteId(routeId, catalog, lineId);
   const [vehiculos, setVehiculos] = useState<VehiculoActivo[]>([]);
-
-  useEffect(() => {
-    const repository = getRepository();
-    const unsubscribeRoute = repository.subscribeRoute(routeId, setRuta);
-    const unsubscribeStops = repository.subscribeStops(routeId, setParadas);
-    return () => {
-      unsubscribeRoute();
-      unsubscribeStops();
-    };
-  }, [routeId]);
 
   useEffect(() => {
     const trackLatencies = createLatencyTracker();
@@ -33,13 +26,14 @@ export function useRouteData(routeId: string = DEFAULT_ROUTE_ID) {
     });
   }, []);
 
-  const routeStops = useMemo(
-    () => paradas.filter((stop) => stop.ruta_id === routeId).sort((a, b) => a.orden - b.orden),
-    [paradas, routeId],
+  const ruta = ready ? findRoute(catalog, effectiveId) ?? null : null;
+  const paradas = useMemo(() => stopsFor(catalog, ruta?.id), [catalog, ruta?.id]);
+  const routeVehicles = useMemo(
+    () => ruta ? vehiclesForRoute(vehiculos, ruta.id) : [],
+    [vehiculos, ruta],
   );
-  const routeVehicles = useMemo(() => vehiclesForRoute(vehiculos, routeId), [vehiculos, routeId]);
 
-  return { ruta: ruta?.id === routeId ? ruta : null, paradas: routeStops, vehiculos: routeVehicles };
+  return { ruta, paradas, vehiculos: routeVehicles };
 }
 
 export function useNow(intervalMs = 5_000): number {

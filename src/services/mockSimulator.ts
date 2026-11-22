@@ -1,6 +1,7 @@
 import { along } from '@turf/along';
 
-import { findRoute, oppositeRoute, ROUTES } from '@/data/seed';
+import { ROUTES } from '@/data/seed';
+import { bundledCatalog, findRoute, oppositeRoute } from '@/lib/routeCatalog';
 import { routeLengthKm, toLineString } from '@/lib/geo';
 import type { Ruta } from '@/types/models';
 
@@ -16,8 +17,8 @@ export type SimVehicle = {
 const lengths = new Map(ROUTES.map((route) => [route.id, routeLengthKm(route)]));
 
 export function advanceVehicle(vehicle: SimVehicle, dtMs: number): SimVehicle {
-  const route = findRoute(vehicle.rutaId);
-  const reverse = route && oppositeRoute(route);
+  const route = findRoute(bundledCatalog, vehicle.rutaId);
+  const reverse = route && oppositeRoute(bundledCatalog, route);
   if (!route || !reverse) return vehicle;
 
   const length = lengths.get(route.id)!;
@@ -63,7 +64,7 @@ export const DEMO_SPEED_MPS = 7;
 export const DEMO_VEHICLES: SimVehicle[] = ROUTES.filter((route) => route.sentido === 'ida')
   .flatMap((route) => {
     const length = lengths.get(route.id)!;
-    const reverse = oppositeRoute(route)!;
+    const reverse = oppositeRoute(bundledCatalog, route)!;
     const roundTripKm = length + lengths.get(reverse.id)!;
     const headwaySeconds = HEADWAY_MINUTES[route.linea_id] * 60;
     const headwayKm = (headwaySeconds * DEMO_SPEED_MPS) / 1_000;
