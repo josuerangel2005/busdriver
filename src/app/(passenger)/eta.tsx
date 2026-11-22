@@ -1,13 +1,14 @@
-import { useRouter } from 'expo-router';
+import { useLocalSearchParams, useRouter } from 'expo-router';
 import { useMemo, useState } from 'react';
 import { Alert, ScrollView, StyleSheet, Text, View } from 'react-native';
 
 import { Badge } from '@/components/Badge';
 import { Button } from '@/components/Button';
 import { EtaCard } from '@/components/EtaCard';
+import { Placard } from '@/components/Placard';
 import { Screen } from '@/components/Screen';
 import { colors, font, fontFamily, spacing } from '@/constants/theme';
-import { useNow, usePilotData } from '@/hooks/usePilotData';
+import { useNow, useRouteData } from '@/hooks/useRouteData';
 import { computeBestStopEtas } from '@/lib/eta';
 import {
   exportFieldLogCsv,
@@ -23,6 +24,8 @@ import {
 } from '@/lib/fieldTest';
 import { exportWaitsCsv, finishWait, listWaits, startWait } from '@/lib/metrics';
 
+import { resolveRouteId } from '@/lib/routeSelection';
+
 type ActiveTrial = {
   waitId: string;
   paradaId: string;
@@ -33,7 +36,8 @@ type ActiveTrial = {
 
 export default function PassengerEtaScreen() {
   const router = useRouter();
-  const { ruta, paradas, vehiculos } = usePilotData();
+  const { routeId } = useLocalSearchParams<{ routeId?: string }>();
+  const { ruta, paradas, vehiculos } = useRouteData(resolveRouteId(routeId));
   const now = useNow(5_000);
   const [selectedStopId, setSelectedStopId] = useState<string | null>(null);
   const [activeTrial, setActiveTrial] = useState<ActiveTrial | null>(null);
@@ -55,14 +59,7 @@ export default function PassengerEtaScreen() {
     [etaTrials],
   );
 
-  const hasVehicle = useMemo(
-    () =>
-      Boolean(ruta) &&
-      vehiculos.some(
-        (item) => item.en_servicio && item.ruta_activa === ruta?.id,
-      ),
-    [vehiculos, ruta],
-  );
+  const hasVehicle = vehiculos.length > 0;
 
   const etas = useMemo(() => {
     if (!ruta) {
@@ -145,6 +142,7 @@ export default function PassengerEtaScreen() {
       <ScrollView contentContainerStyle={styles.content}>
         <View style={styles.header}>
           <Text style={styles.title}>Tiempo estimado</Text>
+          {ruta ? <Text style={styles.hint}>{ruta.nombre} · Trazado aproximado</Text> : null}
           <Badge
             label={hasVehicle ? 'Vehículo en servicio' : 'Sin unidades'}
             tone={hasVehicle ? 'success' : 'neutral'}
@@ -160,17 +158,21 @@ export default function PassengerEtaScreen() {
           <Text style={styles.empty}>
             No hay datos para calcular el tiempo estimado en este momento.
           </Text>
-        ) : (
-          etas.map((stopEta) => (
-            <EtaCard
-              key={stopEta.parada.id}
-              stopEta={stopEta}
-              selected={selectedStopId === stopEta.parada.id}
-              highlight={highlightStopId === stopEta.parada.id}
-              onPress={() => setSelectedStopId(stopEta.parada.id)}
-            />
-          ))
-        )}
+        ) : null}
+        {etas.map((stopEta) => (
+          <EtaCard
+            key={stopEta.parada.id}
+            stopEta={stopEta}
+            selected={selectedStopId === stopEta.parada.id}
+            highlight={highlightStopId === stopEta.parada.id}
+            onPress={() => setSelectedStopId(stopEta.parada.id)}
+          />
+        ))}
+        {!hasVehicle && paradas.map((stop) => (
+          <Placard key={stop.id} tone="plain" selected={selectedStopId === stop.id} onPress={() => setSelectedStopId(stop.id)}>
+            <Text style={styles.hint}>{stop.orden}. {stop.nombre}</Text>
+          </Placard>
+        ))}
 
         <View style={styles.section}>
           <Text style={styles.sectionTitle}>Medición de espera (estudio)</Text>

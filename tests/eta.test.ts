@@ -12,6 +12,9 @@ import {
 import type { Parada, Ruta, VehiculoActivo } from '@/types/models';
 
 const ruta: Ruta = {
+  linea_id: 'test',
+  linea_nombre: 'Test',
+  sentido: 'ida',
   id: 'ruta-test',
   nombre: 'Ruta de prueba',
   polyline: [

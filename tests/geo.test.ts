@@ -1,19 +1,22 @@
 import { describe, expect, it } from 'vitest';
 
-import { PILOT_PARADAS, PILOT_ROUTE } from '@/data/seed';
+import { findRoute, PARADAS } from '@/data/seed';
 import { distanceBetweenM, routeLengthKm, snapToRoute } from '@/lib/geo';
+
+const directRoute = findRoute('directo-cucuta-ida')!;
+const directStops = PARADAS.filter((stop) => stop.ruta_id === directRoute.id);
 
 describe('route helpers', () => {
   it('computes the route length in kilometers', () => {
-    const length = routeLengthKm(PILOT_ROUTE);
+    const length = routeLengthKm(directRoute);
     expect(length).toBeGreaterThan(11);
     expect(length).toBeLessThan(12);
   });
 
   it('snaps a position to the route', () => {
-    const snap = snapToRoute(PILOT_ROUTE, {
-      latitude: PILOT_ROUTE.polyline[3].latitude,
-      longitude: PILOT_ROUTE.polyline[3].longitude,
+    const snap = snapToRoute(directRoute, {
+      latitude: directRoute.polyline[3].latitude,
+      longitude: directRoute.polyline[3].longitude,
     });
     expect(snap.distanceToRouteKm).toBeLessThan(0.001);
     expect(snap.alongKm).toBeGreaterThan(0);
@@ -29,13 +32,13 @@ describe('route helpers', () => {
   });
 
   it('has six ordered stops within 60 m of the route', () => {
-    expect(PILOT_PARADAS.map(({ id, orden }) => [id, orden])).toEqual(
-      Array.from({ length: 6 }, (_, index) => [`parada-0${index + 1}`, index + 1]),
+    expect(directStops.map(({ id, orden }) => [id, orden])).toEqual(
+      Array.from({ length: 6 }, (_, index) => [`${directRoute.id}-0${index + 1}`, index + 1]),
     );
 
     let previousAlongKm = -1;
-    for (const parada of PILOT_PARADAS) {
-      const snap = snapToRoute(PILOT_ROUTE, {
+    for (const parada of directStops) {
+      const snap = snapToRoute(directRoute, {
         latitude: parada.lat,
         longitude: parada.lng,
       });

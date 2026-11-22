@@ -7,19 +7,21 @@ import { useSafeAreaInsets } from 'react-native-safe-area-context';
 import { Button } from '@/components/Button';
 import { Icon } from '@/components/Icon';
 import { Placard } from '@/components/Placard';
+import { RouteSelector } from '@/components/RouteSelector';
 import { Screen } from '@/components/Screen';
-import { PILOT_ROUTE_ID, UPDATE_INTERVAL_MS, USE_MOCK } from '@/constants/config';
+import { DEFAULT_ROUTE_ID, UPDATE_INTERVAL_MS, USE_MOCK } from '@/constants/config';
 import { colors, font, fontFamily, spacing } from '@/constants/theme';
-import { PILOT_ROUTE } from '@/data/seed';
+import { findRoute, oppositeRoute } from '@/data/seed';
 import { clearFieldLogs, exportFieldLogCsv, listPings } from '@/lib/fieldLog';
 import { summarizePings } from '@/lib/fieldTest';
 import { canSwitchRole } from '@/lib/roleSwitch';
 import { getRepository } from '@/services/repository';
-import { beginShift, endShift } from '@/services/shift';
+import { beginShift, changeShiftDirection, endShift } from '@/services/shift';
 import {
   requestLocationPermissions,
   startTracking,
   stopTracking,
+  updateTrackingDirection,
 } from '@/services/tracking';
 import { useAuthStore } from '@/stores/auth';
 import { useTrackingStore } from '@/stores/tracking';
@@ -29,8 +31,11 @@ export default function ShiftScreen() {
   const insets = useSafeAreaInsets();
   const uid = useAuthStore((state) => state.uid);
   const role = useAuthStore((state) => state.role);
-  const { active, loading, refresh, setActive } = useTrackingStore();
+  const { active, session, loading, refresh, setActive } = useTrackingStore();
   const [checking, setChecking] = useState(true);
+  const [routeId, setRouteId] = useState(DEFAULT_ROUTE_ID);
+  const route = findRoute(active ? session?.rutaId : routeId);
+  const reverse = route && oppositeRoute(route);
   const [working, setWorking] = useState(false);
   const [pings, setPings] = useState(() => listPings());
   const [exportingPings, setExportingPings] = useState(false);
@@ -70,7 +75,7 @@ export default function ShiftScreen() {
   }, [uid, refresh, router]);
 
   async function handleBeginShift() {
-    if (!uid) {
+    if (!uid || !route || active || working) {
       return;
     }
     setWorking(true);
@@ -85,13 +90,13 @@ export default function ShiftScreen() {
           return;
         }
       }
-      const session = { vehiculoId: uid, rutaId: PILOT_ROUTE_ID };
+      const session = { vehiculoId: uid, rutaId: route.id };
       await beginShift(
         {
           getCurrentPosition: USE_MOCK
             ? async () => ({
-                lat: PILOT_ROUTE.polyline[0].latitude,
-                lng: PILOT_ROUTE.polyline[0].longitude,
+                lat: route.polyline[0].latitude,
+                lng: route.polyline[0].longitude,
                 timestamp: Date.now(),
                 speed: 0,
               })
@@ -114,6 +119,24 @@ export default function ShiftScreen() {
       setActive(true, session);
     } catch (error) {
       Alert.alert('No se pudo iniciar el turno', (error as Error).message);
+    } finally {
+      setWorking(false);
+    }
+  }
+
+  async function handleChangeDirection() {
+    if (!active || !session || !reverse || working) return;
+    setWorking(true);
+    try {
+      const next = await changeShiftDirection(async (nextSession) => {
+        const publish = () => getRepository().setVehicleRoute(nextSession.vehiculoId, nextSession.rutaId);
+        if (USE_MOCK) await publish();
+        else await updateTrackingDirection(session, nextSession, publish);
+      }, session, reverse.id);
+      setRouteId(next.rutaId);
+      setActive(true, next);
+    } catch (error) {
+      Alert.alert('No se pudo cambiar el sentido', (error as Error).message);
     } finally {
       setWorking(false);
     }
@@ -217,10 +240,19 @@ export default function ShiftScreen() {
         </Placard>
 
         <View style={styles.section}>
-          <Text style={styles.sectionTitle}>{PILOT_ROUTE.nombre}</Text>
+          <Text style={styles.sectionTitle}>{route?.nombre ?? 'Ruta no disponible'}</Text>
           <Text style={styles.muted}>
-            {PILOT_ROUTE.polyline.length} puntos de recorrido · solicitud de ubicación cada {UPDATE_INTERVAL_MS / 1_000} s
+            Trazado aproximado · solicitud de ubicación cada {UPDATE_INTERVAL_MS / 1_000} s
           </Text>
+          {!active && route ? (
+            <RouteSelector route={route} disabled={working} onSelect={(next) => setRouteId(next.id)} />
+          ) : null}
+          {active && reverse ? (
+            <>
+              <Button label="Cambiar sentido" variant="secondary" disabled={working} onPress={handleChangeDirection} />
+              <Text style={styles.muted}>Hazlo solo con el vehículo detenido. Para cambiar de línea, finaliza el turno.</Text>
+            </>
+          ) : null}
         </View>
 
         <View style={styles.section}>
@@ -277,6 +309,7 @@ export default function ShiftScreen() {
         <Button
           label="Cambiar rol"
           variant="secondary"
+          disabled={working}
           onPress={handleChangeRole}
         />
       </ScrollView>

@@ -1,111 +1,23 @@
-// Traced from Empresa Corta Distancia's route map (2026-11-21) and snapped to
-// OpenStreetMap streets with OSRM. Stops are unofficial team reference points.
-import { PILOT_ROUTE_ID } from '@/constants/config';
-import type { Parada, Ruta } from '@/types/models';
+import type { Parada, Ruta, Sentido } from '@/types/models';
 
-export const PILOT_ROUTE: Ruta = {
-  id: PILOT_ROUTE_ID,
-  nombre: 'Directo Cúcuta',
-  polyline: [
-    { latitude: 7.89129, longitude: -72.50853 },
-    { latitude: 7.8914, longitude: -72.50791 },
-    { latitude: 7.88529, longitude: -72.50678 },
-    { latitude: 7.88647, longitude: -72.50061 },
-    { latitude: 7.88636, longitude: -72.50059 },
-    { latitude: 7.88647, longitude: -72.50061 },
-    { latitude: 7.88687, longitude: -72.49825 },
-    { latitude: 7.88692, longitude: -72.49773 },
-    { latitude: 7.88629, longitude: -72.49763 },
-    { latitude: 7.88678, longitude: -72.49483 },
-    { latitude: 7.88649, longitude: -72.49478 },
-    { latitude: 7.88659, longitude: -72.49441 },
-    { latitude: 7.88666, longitude: -72.49341 },
-    { latitude: 7.8863, longitude: -72.49288 },
-    { latitude: 7.88648, longitude: -72.49276 },
-    { latitude: 7.88402, longitude: -72.48917 },
-    { latitude: 7.88283, longitude: -72.48757 },
-    { latitude: 7.88236, longitude: -72.4874 },
-    { latitude: 7.88207, longitude: -72.48711 },
-    { latitude: 7.88174, longitude: -72.487 },
-    { latitude: 7.8808, longitude: -72.4874 },
-    { latitude: 7.88068, longitude: -72.48734 },
-    { latitude: 7.87849, longitude: -72.48831 },
-    { latitude: 7.8777, longitude: -72.48844 },
-    { latitude: 7.87704, longitude: -72.48838 },
-    { latitude: 7.8749, longitude: -72.48783 },
-    { latitude: 7.87407, longitude: -72.4878 },
-    { latitude: 7.87246, longitude: -72.48795 },
-    { latitude: 7.87163, longitude: -72.48771 },
-    { latitude: 7.87005, longitude: -72.48648 },
-    { latitude: 7.86915, longitude: -72.4861 },
-    { latitude: 7.86726, longitude: -72.48447 },
-    { latitude: 7.86575, longitude: -72.48305 },
-    { latitude: 7.839, longitude: -72.46497 },
-    { latitude: 7.83517, longitude: -72.46338 },
-    { latitude: 7.83405, longitude: -72.46304 },
-    { latitude: 7.83198, longitude: -72.46303 },
-    { latitude: 7.82777, longitude: -72.46326 },
-    { latitude: 7.8271, longitude: -72.46311 },
-    { latitude: 7.82513, longitude: -72.46226 },
-    { latitude: 7.82473, longitude: -72.46187 },
-    { latitude: 7.82436, longitude: -72.46126 },
-    { latitude: 7.82357, longitude: -72.4586 },
-    { latitude: 7.82304, longitude: -72.45763 },
-    { latitude: 7.82261, longitude: -72.45718 },
-    { latitude: 7.81929, longitude: -72.45435 },
-    { latitude: 7.8192, longitude: -72.45454 },
-    { latitude: 7.81893, longitude: -72.4547 },
-    { latitude: 7.81885, longitude: -72.45436 },
-  ],
-};
+import seed from '../../firebase/seed.json';
 
-export const PILOT_PARADAS: Parada[] = [
-  {
-    id: 'parada-01',
-    ruta_id: PILOT_ROUTE_ID,
-    nombre: 'Terminal de Transportes',
-    lat: 7.89129,
-    lng: -72.50853,
-    orden: 1,
-  },
-  {
-    id: 'parada-02',
-    ruta_id: PILOT_ROUTE_ID,
-    nombre: 'Centro - Barrio Latino',
-    lat: 7.88687,
-    lng: -72.49825,
-    orden: 2,
-  },
-  {
-    id: 'parada-03',
-    ruta_id: PILOT_ROUTE_ID,
-    nombre: 'San Mateo',
-    lat: 7.87849,
-    lng: -72.48831,
-    orden: 3,
-  },
-  {
-    id: 'parada-04',
-    ruta_id: PILOT_ROUTE_ID,
-    nombre: 'Autopista Internacional',
-    lat: 7.86575,
-    lng: -72.48305,
-    orden: 4,
-  },
-  {
-    id: 'parada-05',
-    ruta_id: PILOT_ROUTE_ID,
-    nombre: 'Villa del Rosario - Templo Histórico',
-    lat: 7.82777,
-    lng: -72.46326,
-    orden: 5,
-  },
-  {
-    id: 'parada-06',
-    ruta_id: PILOT_ROUTE_ID,
-    nombre: 'La Parada',
-    lat: 7.81885,
-    lng: -72.45436,
-    orden: 6,
-  },
-];
+// Use the same catalog in the demo and in the Firebase import.
+export const ROUTES: Ruta[] = Object.entries(seed.rutas).map(([id, route]) => ({
+  id,
+  ...route,
+  sentido: route.sentido as Sentido,
+}));
+
+export const PARADAS: Parada[] = Object.entries(seed.paradas).map(([id, stop]) => ({
+  id,
+  ...stop,
+}));
+
+export function findRoute(id: string | undefined): Ruta | undefined {
+  return ROUTES.find((route) => route.id === id);
+}
+
+export function oppositeRoute(route: Ruta): Ruta | undefined {
+  return ROUTES.find((other) => other.linea_id === route.linea_id && other.sentido !== route.sentido);
+}

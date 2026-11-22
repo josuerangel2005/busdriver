@@ -1,8 +1,13 @@
 export type LatLng = { latitude: number; longitude: number };
 
+export type Sentido = 'ida' | 'vuelta';
+
 export type Ruta = {
   id: string;
   nombre: string;
+  linea_id: string;
+  linea_nombre: string;
+  sentido: Sentido;
   polyline: LatLng[];
 };
 

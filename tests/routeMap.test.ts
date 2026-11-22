@@ -2,8 +2,11 @@ import { Camera } from '@maplibre/maplibre-react-native';
 import { Children, isValidElement, type ComponentProps, type ReactElement } from 'react';
 import { describe, expect, it, vi } from 'vitest';
 
+import { spacing } from '@/constants/theme';
 import { RouteMap } from '@/components/RouteMap';
-import { PILOT_ROUTE } from '@/data/seed';
+import { findRoute } from '@/data/seed';
+
+const directRoute = findRoute('directo-cucuta-ida')!;
 
 vi.mock('@maplibre/maplibre-react-native', () => ({
   Camera: () => null,
@@ -20,21 +23,21 @@ vi.mock('react-native', () => ({
   View: () => null,
 }));
 
-function cameraProps(ruta: ComponentProps<typeof RouteMap>['ruta']) {
-  const view = RouteMap({ ruta, paradas: [], vehiculos: [], now: 0 });
+function routeCamera(ruta: ComponentProps<typeof RouteMap>['ruta'], placardHeight?: number) {
+  const view = RouteMap({ ruta, paradas: [], vehiculos: [], now: 0, placardHeight });
   const map = Children.only(view.props.children) as ReactElement<{ children: ReactElement[] }>;
   const camera = Children.toArray(map.props.children).find(
     (child) => isValidElement<ComponentProps<typeof Camera>>(child) && child.type === Camera,
   );
   if (!isValidElement<ComponentProps<typeof Camera>>(camera)) throw new Error('Camera not rendered');
-  return camera.props;
+  return camera;
 }
 
 describe('RouteMap camera', () => {
   it('fits the entire route with padding', () => {
-    const longitudes = PILOT_ROUTE.polyline.map(({ longitude }) => longitude);
-    const latitudes = PILOT_ROUTE.polyline.map(({ latitude }) => latitude);
-    expect(cameraProps(PILOT_ROUTE)).toMatchObject({
+    const longitudes = directRoute.polyline.map(({ longitude }) => longitude);
+    const latitudes = directRoute.polyline.map(({ latitude }) => latitude);
+    expect(routeCamera(directRoute).props).toMatchObject({
       bounds: [
         Math.min(...longitudes),
         Math.min(...latitudes),
@@ -50,7 +53,24 @@ describe('RouteMap camera', () => {
     });
   });
 
+  it('reserves the measured placard height plus a margin above the route', () => {
+    expect(routeCamera(directRoute, 120).props.padding).toEqual({
+      top: 120 + spacing.xl,
+      right: 40,
+      bottom: 40,
+      left: 40,
+    });
+  });
+
+  it('recreates the camera when switching directions with the same route bounds', () => {
+    const outbound = routeCamera(directRoute);
+    const inbound = routeCamera(findRoute('directo-cucuta-vuelta')!);
+    if (!('bounds' in outbound.props)) throw new Error('Outbound bounds not rendered');
+    expect(inbound.props).toMatchObject({ bounds: outbound.props.bounds });
+    expect(inbound.key).not.toBe(outbound.key);
+  });
+
   it('keeps the default camera while the route loads', () => {
-    expect(cameraProps(null)).toMatchObject({ center: [-72.5008, 7.898], zoom: 13.5 });
+    expect(routeCamera(null).props).toMatchObject({ center: [-72.5008, 7.898], zoom: 13.5 });
   });
 });

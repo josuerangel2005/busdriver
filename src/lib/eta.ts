@@ -44,6 +44,8 @@ export function computeStopEtas(
   vehiculo: VehiculoActivo,
   now = Date.now(),
 ): StopEta[] {
+  if (vehiculo.ruta_activa !== ruta.id) return [];
+
   const vehicleSnap = snapToRoute(ruta, {
     latitude: vehiculo.lat,
     longitude: vehiculo.lng,
@@ -72,15 +74,17 @@ export function computeStopEtas(
     });
 }
 
+export function vehiclesForRoute(vehicles: VehiculoActivo[], routeId: string): VehiculoActivo[] {
+  return vehicles.filter((vehicle) => vehicle.en_servicio && vehicle.ruta_activa === routeId);
+}
+
 export function computeBestStopEtas(
   ruta: Ruta,
   paradas: Parada[],
   vehiculos: VehiculoActivo[],
   now = Date.now(),
 ): StopEta[] {
-  const candidates = vehiculos.filter(
-    (vehiculo) => vehiculo.en_servicio && vehiculo.ruta_activa === ruta.id,
-  );
+  const candidates = vehiclesForRoute(vehiculos, ruta.id);
   if (candidates.length === 0) {
     return [];
   }

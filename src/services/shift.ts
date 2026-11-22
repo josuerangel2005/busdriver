@@ -1,3 +1,4 @@
+import { findRoute, oppositeRoute } from '@/data/seed';
 import type { VehiculoActivo } from '@/types/models';
 
 import type { TrackingSession } from './tracking';
@@ -54,4 +55,18 @@ export async function endShift(
 ): Promise<void> {
   await deps.stopTracking();
   await deps.setService(vehiculoId, false);
+}
+
+export async function changeShiftDirection(
+  updateDirection: (session: TrackingSession) => Promise<void>,
+  session: TrackingSession,
+  routeId: string,
+): Promise<TrackingSession> {
+  const current = findRoute(session.rutaId);
+  if (!current || oppositeRoute(current)?.id !== routeId) {
+    throw new Error('Solo puedes cambiar el sentido de la línea en servicio.');
+  }
+  const next = { ...session, rutaId: routeId };
+  await updateDirection(next);
+  return next;
 }

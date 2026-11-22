@@ -1,30 +1,33 @@
 import { along } from '@turf/along';
 
-import { PILOT_ROUTE } from '@/data/seed';
+import { findRoute, oppositeRoute, ROUTES } from '@/data/seed';
 import { routeLengthKm, toLineString } from '@/lib/geo';
 import type { Ruta } from '@/types/models';
 
 export type SimVehicle = {
   vehiculo_id: string;
+  rutaId: string;
   progressKm: number;
   speedMps: number;
   signalLossEveryMs?: number;
   signalLossDurationMs?: number;
 };
 
-export function advanceVehicle(
-  ruta: Ruta,
-  vehicle: SimVehicle,
-  dtMs: number,
-): SimVehicle {
-  const totalKm = routeLengthKm(ruta);
-  // speed (m/s) * dt (ms) / 1_000_000 = distance in kilometers.
-  const nextKm = vehicle.progressKm + (vehicle.speedMps * dtMs) / 1_000_000;
+const lengths = new Map(ROUTES.map((route) => [route.id, routeLengthKm(route)]));
 
-  return {
-    ...vehicle,
-    progressKm: totalKm > 0 && nextKm > totalKm ? 0 : nextKm,
-  };
+export function advanceVehicle(vehicle: SimVehicle, dtMs: number): SimVehicle {
+  const route = findRoute(vehicle.rutaId);
+  const reverse = route && oppositeRoute(route);
+  if (!route || !reverse) return vehicle;
+
+  const length = lengths.get(route.id)!;
+  const reverseLength = lengths.get(reverse.id)!;
+  // Preserve leftover distance when passing a shared endpoint.
+  const progress = (vehicle.progressKm + (vehicle.speedMps * dtMs) / 1_000_000)
+    % (length + reverseLength);
+  return progress >= length
+    ? { ...vehicle, rutaId: reverse.id, progressKm: progress - length }
+    : { ...vehicle, progressKm: progress };
 }
 
 export function positionAt(
@@ -49,30 +52,35 @@ export function isInSignalLoss(vehicle: SimVehicle, elapsedMs: number): boolean 
   return cycleMs >= signalLossEveryMs - signalLossDurationMs;
 }
 
-const DEMO_ROUTE_LENGTH_KM = routeLengthKm(PILOT_ROUTE);
+const HEADWAY_MINUTES: Record<string, number> = {
+  'directo-cucuta': 8,
+  'campo-verde': 17,
+  natura: 17,
+};
+export const DEMO_SPEED_MPS = 7;
 
-// Four evenly spaced buses at urban speeds approximate the published 6–10 min headway (~8 min).
-export const DEMO_VEHICLES: SimVehicle[] = [
-  {
-    vehiculo_id: 'demo-buseta-1',
-    progressKm: 0,
-    speedMps: 6.5,
-  },
-  {
-    vehiculo_id: 'demo-buseta-2',
-    progressKm: DEMO_ROUTE_LENGTH_KM * 0.25,
-    speedMps: 7,
-  },
-  {
-    vehiculo_id: 'demo-buseta-3',
-    progressKm: DEMO_ROUTE_LENGTH_KM * 0.5,
-    speedMps: 7.5,
-    signalLossEveryMs: 180_000,
-    signalLossDurationMs: 45_000,
-  },
-  {
-    vehiculo_id: 'demo-buseta-4',
-    progressKm: DEMO_ROUTE_LENGTH_KM * 0.75,
-    speedMps: 7,
-  },
-];
+// Even spacing around the round trip approximates each published headway.
+export const DEMO_VEHICLES: SimVehicle[] = ROUTES.filter((route) => route.sentido === 'ida')
+  .flatMap((route) => {
+    const length = lengths.get(route.id)!;
+    const reverse = oppositeRoute(route)!;
+    const roundTripKm = length + lengths.get(reverse.id)!;
+    const headwaySeconds = HEADWAY_MINUTES[route.linea_id] * 60;
+    const headwayKm = (headwaySeconds * DEMO_SPEED_MPS) / 1_000;
+    const count = Math.max(2, Math.round(roundTripKm / headwayKm));
+    const speedMps = (roundTripKm * 1_000) / (count * headwaySeconds);
+
+    return Array.from({ length: count }, (_, index) => {
+      const progress = (roundTripKm * index) / count;
+      const lossy = route.linea_id === 'directo-cucuta' && index === 2;
+      return {
+        vehiculo_id: route.linea_id === 'directo-cucuta'
+          ? `demo-buseta-${index + 1}`
+          : `demo-${route.linea_id}-${index + 1}`,
+        rutaId: progress < length ? route.id : reverse.id,
+        progressKm: progress < length ? progress : progress - length,
+        speedMps,
+        ...(lossy ? { signalLossEveryMs: 180_000, signalLossDurationMs: 45_000 } : {}),
+      };
+    });
+  });

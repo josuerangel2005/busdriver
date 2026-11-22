@@ -1,11 +1,13 @@
 import { afterEach, beforeEach, describe, expect, it, vi } from 'vitest';
 
-import { PILOT_ROUTE_ID } from '@/constants/config';
-import { PILOT_ROUTE } from '@/data/seed';
+import { findRoute } from '@/data/seed';
 import { mockRepository, resetMockState } from '@/services/mockRepository';
+import { DEMO_VEHICLES } from '@/services/mockSimulator';
 import type { VehiculoActivo } from '@/types/models';
 
-const DEMO_IDS = ['demo-buseta-1', 'demo-buseta-2', 'demo-buseta-3', 'demo-buseta-4'];
+const directRoute = findRoute('directo-cucuta-ida')!;
+
+const DEMO_IDS = DEMO_VEHICLES.map((bus) => bus.vehiculo_id).sort();
 
 function captureVehicles() {
   const snapshots: VehiculoActivo[][] = [];
@@ -34,14 +36,14 @@ afterEach(() => {
 });
 
 describe('mockRepository vehicle simulation', () => {
-  it('a passenger subscription alone receives 4 in-service demo vehicles that move on each tick', () => {
+  it('a passenger subscription alone receives all in-service demo vehicles that move on each tick', () => {
     const { snapshots } = captureVehicles();
     const initial = latest(snapshots);
     const inService = initial.filter(
-      (vehicle) => vehicle.en_servicio && vehicle.ruta_activa === PILOT_ROUTE_ID,
+      (vehicle) => vehicle.en_servicio,
     );
 
-    expect(inService).toHaveLength(4);
+    expect(inService).toHaveLength(DEMO_IDS.length);
     expect(inService.map((vehicle) => vehicle.vehiculo_id).sort()).toEqual(DEMO_IDS);
 
     vi.advanceTimersByTime(3_000);
@@ -84,10 +86,10 @@ describe('mockRepository vehicle simulation', () => {
 
     await mockRepository.publishVehicle({
       vehiculo_id: driverId,
-      lat: PILOT_ROUTE.polyline[0].latitude,
-      lng: PILOT_ROUTE.polyline[0].longitude,
+      lat: directRoute.polyline[0].latitude,
+      lng: directRoute.polyline[0].longitude,
       timestamp_ultima_actualizacion: Date.now(),
-      ruta_activa: PILOT_ROUTE_ID,
+      ruta_activa: directRoute.id,
       velocidad_actual: 0,
       en_servicio: true,
     });
@@ -116,6 +118,37 @@ describe('mockRepository vehicle simulation', () => {
       const demoAfter = findVehicle(after, id);
       expect(demoAfter?.lat).not.toBe(demoBefore[index]?.lat);
     });
+  });
+
+  it('publishes a driver direction change without ending service or moving the bus immediately', async () => {
+    const { snapshots } = captureVehicles();
+    const route = findRoute('campo-verde-ida')!;
+    const terminus = route.polyline.at(-1)!;
+    const bus = {
+      vehiculo_id: 'driver',
+      lat: terminus.latitude,
+      lng: terminus.longitude,
+      timestamp_ultima_actualizacion: Date.now(),
+      ruta_activa: route.id,
+      velocidad_actual: 0,
+      en_servicio: true,
+    };
+    await mockRepository.publishVehicle(bus);
+    vi.advanceTimersByTime(3_000);
+    expect(findVehicle(latest(snapshots), 'driver')?.ruta_activa).toBe(route.id);
+
+    await mockRepository.setVehicleRoute('driver', 'campo-verde-vuelta');
+    expect(findVehicle(latest(snapshots), 'driver')).toMatchObject({
+      ruta_activa: 'campo-verde-vuelta',
+      en_servicio: true,
+      lat: terminus.latitude,
+      lng: terminus.longitude,
+    });
+
+    vi.advanceTimersByTime(3_000);
+    const moved = findVehicle(latest(snapshots), 'driver');
+    expect(moved?.ruta_activa).toBe('campo-verde-vuelta');
+    expect(moved?.lat).not.toBe(terminus.latitude);
   });
 
   it('leaves no timers once the only listener unsubscribes and no driver vehicle is in service', () => {

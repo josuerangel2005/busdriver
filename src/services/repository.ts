@@ -14,9 +14,11 @@ export type Repository = {
     onData: (vehiculos: VehiculoActivo[]) => void,
     onError?: (error: Error) => void,
   ): Unsubscribe;
+  subscribeRoutes(onData: (rutas: Ruta[]) => void): Unsubscribe;
   subscribeRoute(routeId: string, onData: (ruta: Ruta | null) => void): Unsubscribe;
   subscribeStops(routeId: string, onData: (paradas: Parada[]) => void): Unsubscribe;
   publishVehicle(vehiculo: VehiculoActivo): Promise<void>;
+  setVehicleRoute(vehiculoId: string, routeId: string): Promise<void>;
   setService(vehiculoId: string, enServicio: boolean): Promise<void>;
   saveConsent(uid: string, consentimiento: Consentimiento): Promise<void>;
   getConsent(uid: string): Promise<Consentimiento | null>;

@@ -1,20 +1,44 @@
+import AsyncStorage from '@react-native-async-storage/async-storage';
 import { useRouter } from 'expo-router';
-import { useMemo, useState } from 'react';
+import { useEffect, useMemo, useState } from 'react';
 import { Pressable, ScrollView, StyleSheet, Text, View } from 'react-native';
 
 import { Badge } from '@/components/Badge';
 import { EtaCard } from '@/components/EtaCard';
 import { Placard } from '@/components/Placard';
 import { RouteMap } from '@/components/RouteMap';
+import { RouteSelector } from '@/components/RouteSelector';
 import { Screen } from '@/components/Screen';
+import { DEFAULT_ROUTE_ID } from '@/constants/config';
 import { colors, font, fontFamily, spacing } from '@/constants/theme';
-import { useNow, usePilotData } from '@/hooks/usePilotData';
+import { findRoute, PARADAS } from '@/data/seed';
+import { useNow, useRouteData } from '@/hooks/useRouteData';
 import { computeBestStopEtas, isStale } from '@/lib/eta';
+import { loadPassengerRoute, savePassengerRoute } from '@/lib/routeSelection';
 import { useAuthStore } from '@/stores/auth';
 
 export default function PassengerMapScreen() {
   const router = useRouter();
-  const { ruta, paradas, vehiculos } = usePilotData();
+  const [routeId, setRouteId] = useState(DEFAULT_ROUTE_ID);
+  const [restoring, setRestoring] = useState(true);
+  const [placardHeight, setPlacardHeight] = useState<number>();
+  const { ruta, paradas, vehiculos } = useRouteData(routeId);
+  const selectedRoute = ruta ?? findRoute(routeId)!;
+  const destination = paradas[paradas.length - 1] ?? PARADAS.reduce<(typeof PARADAS)[number] | undefined>(
+    (last, stop) => stop.ruta_id === routeId && (!last || stop.orden > last.orden) ? stop : last,
+    undefined,
+  );
+
+  useEffect(() => {
+    let mounted = true;
+    void loadPassengerRoute(AsyncStorage).then((savedId) => {
+      if (mounted) {
+        setRouteId(savedId);
+        setRestoring(false);
+      }
+    });
+    return () => { mounted = false; };
+  }, []);
   const now = useNow(5_000);
   const [selectedStopId, setSelectedStopId] = useState<string | null>(null);
 
@@ -22,18 +46,6 @@ export default function PassengerMapScreen() {
     await useAuthStore.getState().signOut();
     router.replace('/');
   }
-
-  const activeVehicles = useMemo(
-    () => vehiculos.filter((vehiculo) => vehiculo.en_servicio),
-    [vehiculos],
-  );
-  const routeVehicles = useMemo(
-    () =>
-      ruta
-        ? activeVehicles.filter((vehiculo) => vehiculo.ruta_activa === ruta.id)
-        : [],
-    [activeVehicles, ruta],
-  );
 
   const etas = useMemo(() => {
     if (!ruta) {
@@ -47,10 +59,10 @@ export default function PassengerMapScreen() {
     [etas],
   );
 
-  const hasVehicle = routeVehicles.length > 0;
+  const hasVehicle = vehiculos.length > 0;
   const stale =
     hasVehicle &&
-    routeVehicles.every((vehiculo) =>
+    vehiculos.every((vehiculo) =>
       isStale(vehiculo.timestamp_ultima_actualizacion, now),
     );
 
@@ -60,39 +72,40 @@ export default function PassengerMapScreen() {
         <RouteMap
           ruta={ruta}
           paradas={paradas}
-          vehiculos={activeVehicles}
+          vehiculos={vehiculos}
           selectedStopId={selectedStopId}
           onSelectStop={(parada) => setSelectedStopId(parada.id)}
           now={now}
+          placardHeight={placardHeight}
         />
-
-        <View style={styles.overlay}>
+        <View style={styles.header} onLayout={(event) => setPlacardHeight(Math.ceil(event.nativeEvent.layout.height))}>
           <Placard tone="plain">
             <View style={styles.placardContent}>
-              <View style={styles.overlayHeader}>
-                <Text style={styles.routeName} numberOfLines={2}>
-                  {ruta?.nombre ?? 'Cargando ruta…'}
-                </Text>
-                <Badge
-                  label={
-                    !hasVehicle
-                      ? 'Sin unidades'
-                      : stale
-                        ? 'Datos desactualizados'
-                        : 'En servicio'
-                  }
-                  tone={!hasVehicle ? 'neutral' : stale ? 'danger' : 'success'}
-                />
+              <Text accessibilityRole="header" numberOfLines={1} ellipsizeMode="tail" style={styles.routeName}>
+                {destination ? `Hacia ${destination.nombre}` : 'Destino no disponible'}
+              </Text>
+              <RouteSelector
+                route={selectedRoute}
+                disabled={restoring}
+                onSelect={(route) => {
+                  if (route.id === routeId) return;
+                  setSelectedStopId(null);
+                  setRouteId(route.id);
+                  void savePassengerRoute(AsyncStorage, route.id);
+                }}
+              />
+              <View style={styles.metaRow}>
+                <Text style={styles.traceNote}>Trazado aproximado</Text>
+                <View>
+                  <Badge
+                    label={!hasVehicle ? 'Sin unidades' : stale ? 'Desactualizado' : 'En servicio'}
+                    tone={!hasVehicle ? 'neutral' : stale ? 'danger' : 'success'}
+                  />
+                </View>
+                <Pressable accessibilityRole="button" onPress={handleChangeRole} style={styles.roleSwitchButton}>
+                  <Text style={styles.roleSwitch}>Cambiar rol</Text>
+                </Pressable>
               </View>
-              {ruta ? <Text style={styles.routeNote}>Trazado aproximado</Text> : null}
-              <Pressable
-                accessibilityRole="button"
-                hitSlop={{ top: 16, bottom: 16, left: 8, right: 8 }}
-                onPress={handleChangeRole}
-                style={styles.roleSwitchButton}
-              >
-                <Text style={styles.roleSwitch}>Cambiar rol</Text>
-              </Pressable>
             </View>
           </Placard>
         </View>
@@ -104,7 +117,8 @@ export default function PassengerMapScreen() {
           <Pressable
             accessibilityRole="button"
             hitSlop={8}
-            onPress={() => router.push('/(passenger)/eta')}
+            disabled={restoring}
+            onPress={() => router.push({ pathname: '/(passenger)/eta', params: { routeId } })}
             style={styles.detailButton}
           >
             <Text style={styles.detailText}>Ver detalle</Text>
@@ -115,22 +129,26 @@ export default function PassengerMapScreen() {
           contentContainerStyle={styles.list}
           showsVerticalScrollIndicator={false}
         >
-          {etas.length === 0 ? (
+          {!hasVehicle ? (
             <Text style={styles.empty}>
               No hay vehículos en servicio. El tiempo estimado aparecerá cuando un
               conductor inicie su turno.
             </Text>
-          ) : (
-            etas.map((stopEta) => (
-              <EtaCard
-                key={stopEta.parada.id}
-                stopEta={stopEta}
-                selected={selectedStopId === stopEta.parada.id}
-                highlight={highlightStopId === stopEta.parada.id}
-                onPress={() => setSelectedStopId(stopEta.parada.id)}
-              />
-            ))
-          )}
+          ) : null}
+          {etas.map((stopEta) => (
+            <EtaCard
+              key={stopEta.parada.id}
+              stopEta={stopEta}
+              selected={selectedStopId === stopEta.parada.id}
+              highlight={highlightStopId === stopEta.parada.id}
+              onPress={() => setSelectedStopId(stopEta.parada.id)}
+            />
+          ))}
+          {!hasVehicle && paradas.map((stop) => (
+            <Placard key={stop.id} tone="plain" selected={selectedStopId === stop.id} onPress={() => setSelectedStopId(stop.id)}>
+              <Text style={styles.routeNote}>{stop.orden}. {stop.nombre}</Text>
+            </Placard>
+          ))}
         </ScrollView>
       </View>
     </Screen>
@@ -141,23 +159,29 @@ const styles = StyleSheet.create({
   mapWrapper: {
     flex: 1,
   },
-  overlay: {
+  header: {
     position: 'absolute',
-    top: spacing.md,
-    left: spacing.md,
-    right: spacing.md,
+    top: 0,
+    left: spacing.sm,
+    right: spacing.sm,
+    paddingTop: spacing.sm,
   },
   placardContent: {
-    marginVertical: -spacing.xs,
+    marginVertical: -spacing.sm,
+    gap: spacing.xs,
   },
-  overlayHeader: {
+  metaRow: {
     flexDirection: 'row',
     alignItems: 'center',
     justifyContent: 'space-between',
-    gap: spacing.sm,
+    gap: spacing.xs,
+  },
+  traceNote: {
+    flexShrink: 1,
+    color: colors.inkMuted,
+    fontSize: font.label,
   },
   routeName: {
-    flex: 1,
     color: colors.ink,
     fontFamily: fontFamily.display,
     fontSize: font.title,
@@ -168,16 +192,18 @@ const styles = StyleSheet.create({
     fontSize: font.body,
   },
   roleSwitchButton: {
-    alignSelf: 'flex-start',
+    minHeight: 48,
+    minWidth: 48,
+    justifyContent: 'center',
   },
   roleSwitch: {
     color: colors.ink,
-    fontSize: font.body,
+    fontSize: font.label,
     fontWeight: '700',
     textDecorationLine: 'underline',
   },
   panel: {
-    maxHeight: '48%',
+    maxHeight: '38%',
     backgroundColor: colors.ground,
     paddingTop: spacing.sm,
   },

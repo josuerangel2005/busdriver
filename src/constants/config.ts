@@ -1,6 +1,6 @@
 export const APP_NAME = 'Buseta Ya';
 
-export const PILOT_ROUTE_ID = 'ruta-piloto-01';
+export const DEFAULT_ROUTE_ID = 'directo-cucuta-ida';
 
 export const LOCATION_TASK_NAME = 'rastreo-background-location';
 
@@ -27,6 +27,7 @@ export const MAP_STYLE_URL =
   process.env.EXPO_PUBLIC_MAP_STYLE_URL ?? 'https://tiles.openfreemap.org/styles/liberty';
 
 export const STORAGE_KEYS = {
+  passengerRoute: 'passenger_route',
   trackingSession: 'tracking_session',
   lastPing: 'tracking_last_ping',
   uid: 'auth_uid',

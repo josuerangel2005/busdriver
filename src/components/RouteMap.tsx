@@ -4,7 +4,7 @@ import type { Feature, LineString } from 'geojson';
 import { Pressable, StyleSheet, Text, View } from 'react-native';
 
 import { MAP_STYLE_URL } from '@/constants/config';
-import { colors, fontFamily, radius } from '@/constants/theme';
+import { colors, fontFamily, radius, spacing } from '@/constants/theme';
 import { isStale } from '@/lib/eta';
 import type { Parada, Ruta, VehiculoActivo } from '@/types/models';
 
@@ -15,6 +15,7 @@ type Props = {
   selectedStopId?: string | null;
   onSelectStop?: (parada: Parada) => void;
   now: number;
+  placardHeight?: number;
 };
 
 const DEFAULT_CENTER: [number, number] = [-72.5008, 7.898];
@@ -41,8 +42,12 @@ export function RouteMap({
   selectedStopId,
   onSelectStop,
   now,
+  placardHeight,
 }: Props) {
   const bounds = ruta ? getRouteBounds(ruta.polyline) : undefined;
+  const padding = placardHeight === undefined
+    ? ROUTE_PADDING
+    : { ...ROUTE_PADDING, top: placardHeight + spacing.xl };
   const firstPoint = ruta?.polyline[0];
   const center: [number, number] = firstPoint
     ? [firstPoint.longitude, firstPoint.latitude]
@@ -63,7 +68,7 @@ export function RouteMap({
     <View style={styles.container}>
       <Map mapStyle={MAP_STYLE_URL} style={styles.map}>
         {bounds ? (
-          <Camera bounds={bounds} padding={ROUTE_PADDING} />
+          <Camera key={ruta?.id} bounds={bounds} padding={padding} />
         ) : (
           <Camera center={center} zoom={13.5} />
         )}

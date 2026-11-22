@@ -6,7 +6,7 @@ import { LOCATION_TASK_NAME, STORAGE_KEYS } from '@/constants/config';
 import { logPing } from '@/lib/fieldLog';
 import { distanceBetweenM } from '@/lib/geo';
 import { getRepository } from '@/services/repository';
-import type { TrackingSession } from '@/services/tracking';
+import { getTrackingSession, withTrackingWrite } from '@/services/tracking';
 import type { VehiculoActivo } from '@/types/models';
 
 type LastPing = {
@@ -31,67 +31,66 @@ TaskManager.defineTask(LOCATION_TASK_NAME, async ({ data, error }) => {
     return;
   }
 
-  const rawSession = await AsyncStorage.getItem(STORAGE_KEYS.trackingSession);
-  if (!rawSession) {
-    return;
-  }
-  const session = JSON.parse(rawSession) as TrackingSession;
+  await withTrackingWrite(async () => {
+    const session = await getTrackingSession();
+    if (!session) return;
 
-  const rawLast = await AsyncStorage.getItem(STORAGE_KEYS.lastPing);
-  const last = rawLast ? (JSON.parse(rawLast) as LastPing) : null;
+    const rawLast = await AsyncStorage.getItem(STORAGE_KEYS.lastPing);
+    const last = rawLast ? (JSON.parse(rawLast) as LastPing) : null;
 
-  const location = locations[locations.length - 1];
-  const { latitude, longitude } = location.coords;
-  const timestamp = location.timestamp || Date.now();
+    const location = locations[locations.length - 1];
+    const { latitude, longitude } = location.coords;
+    const timestamp = location.timestamp || Date.now();
 
-  let speed = location.coords.speed ?? 0;
-  if (last && timestamp > last.timestamp) {
-    const deltaSeconds = (timestamp - last.timestamp) / 1000;
-    const measured =
-      distanceBetweenM(
-        { latitude: last.lat, longitude: last.lng },
-        { latitude, longitude },
-      ) / deltaSeconds;
-    speed = last.speed > 0 ? last.speed * 0.6 + measured * 0.4 : measured;
-  }
-  if (!Number.isFinite(speed) || speed < 0) {
-    speed = 0;
-  }
+    let speed = location.coords.speed ?? 0;
+    if (last && timestamp > last.timestamp) {
+      const deltaSeconds = (timestamp - last.timestamp) / 1000;
+      const measured =
+        distanceBetweenM(
+          { latitude: last.lat, longitude: last.lng },
+          { latitude, longitude },
+        ) / deltaSeconds;
+      speed = last.speed > 0 ? last.speed * 0.6 + measured * 0.4 : measured;
+    }
+    if (!Number.isFinite(speed) || speed < 0) {
+      speed = 0;
+    }
 
-  const vehiculo: VehiculoActivo = {
-    vehiculo_id: session.vehiculoId,
-    lat: latitude,
-    lng: longitude,
-    timestamp_ultima_actualizacion: timestamp,
-    ruta_activa: session.rutaId,
-    velocidad_actual: speed,
-    en_servicio: true,
-  };
+    const vehiculo: VehiculoActivo = {
+      vehiculo_id: session.vehiculoId,
+      lat: latitude,
+      lng: longitude,
+      timestamp_ultima_actualizacion: timestamp,
+      ruta_activa: session.rutaId,
+      velocidad_actual: speed,
+      en_servicio: true,
+    };
 
-  try {
-    await getRepository().publishVehicle(vehiculo);
-    logPing({
-      vehiculo_id: vehiculo.vehiculo_id,
-      timestamp_gps: timestamp,
-      enviado_en: Date.now(),
-      ok: true,
-      error: null,
-    });
-  } catch (error) {
-    const message = error instanceof Error ? error.message : String(error);
-    logPing({
-      vehiculo_id: vehiculo.vehiculo_id,
-      timestamp_gps: timestamp,
-      enviado_en: Date.now(),
-      ok: false,
-      error: message,
-    });
-    console.warn('[location-task] no se pudo publicar la ubicación', message);
-    return;
-  }
+    try {
+      await getRepository().publishVehicle(vehiculo);
+      logPing({
+        vehiculo_id: vehiculo.vehiculo_id,
+        timestamp_gps: timestamp,
+        enviado_en: Date.now(),
+        ok: true,
+        error: null,
+      });
+    } catch (error) {
+      const message = error instanceof Error ? error.message : String(error);
+      logPing({
+        vehiculo_id: vehiculo.vehiculo_id,
+        timestamp_gps: timestamp,
+        enviado_en: Date.now(),
+        ok: false,
+        error: message,
+      });
+      console.warn('[location-task] no se pudo publicar la ubicación', message);
+      return;
+    }
 
-  await AsyncStorage.setItem(
-    STORAGE_KEYS.lastPing,
-    JSON.stringify({ lat: latitude, lng: longitude, timestamp, speed }),
-  );
+    await AsyncStorage.setItem(
+      STORAGE_KEYS.lastPing,
+      JSON.stringify({ lat: latitude, lng: longitude, timestamp, speed }),
+    );
+  });
 });

@@ -47,6 +47,12 @@ export const firebaseRepository: Repository = {
     );
   },
 
+  subscribeRoutes(onData): Unsubscribe {
+    return onValue(ref(db(), 'rutas'), (snapshot: DataSnapshot) => {
+      onData(toList<Ruta>(snapshot.val()));
+    });
+  },
+
   subscribeRoute(routeId, onData): Unsubscribe {
     return onValue(ref(db(), `rutas/${routeId}`), (snapshot: DataSnapshot) => {
       onData(toRuta(routeId, snapshot.val()));
@@ -64,6 +70,10 @@ export const firebaseRepository: Repository = {
 
   async publishVehicle(vehiculo): Promise<void> {
     await set(ref(db(), `vehiculos_activos/${vehiculo.vehiculo_id}`), vehiculo);
+  },
+
+  async setVehicleRoute(vehiculoId, routeId): Promise<void> {
+    await update(ref(db(), `vehiculos_activos/${vehiculoId}`), { ruta_activa: routeId });
   },
 
   async setService(vehiculoId, enServicio): Promise<void> {

@@ -3,7 +3,7 @@ import { describe, expect, it } from 'vitest';
 import { beginShift, endShift } from '@/services/shift';
 import type { VehiculoActivo } from '@/types/models';
 
-const session = { vehiculoId: 'uid-1', rutaId: 'ruta-piloto-01' };
+const session = { vehiculoId: 'uid-1', rutaId: 'campo-verde-vuelta' };
 
 const position = {
   lat: 7.8939,
@@ -37,7 +37,7 @@ describe('beginShift', () => {
     expect(calls).toEqual([
       'getCurrentPosition',
       'publishVehicle',
-      'startTracking:uid-1:ruta-piloto-01',
+      'startTracking:uid-1:campo-verde-vuelta',
     ]);
     expect(published).toHaveLength(1);
     expect(published[0]).toEqual({
@@ -45,7 +45,7 @@ describe('beginShift', () => {
       lat: 7.8939,
       lng: -72.5078,
       timestamp_ultima_actualizacion: 1_700_000_000_000,
-      ruta_activa: 'ruta-piloto-01',
+      ruta_activa: 'campo-verde-vuelta',
       velocidad_actual: 12.5,
       en_servicio: true,
     });

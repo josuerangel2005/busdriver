@@ -1,6 +1,6 @@
-import { PILOT_ROUTE_ID } from '@/constants/config';
-import { PILOT_PARADAS, PILOT_ROUTE } from '@/data/seed';
-import { snapToRoute } from '@/lib/geo';
+import { DEFAULT_ROUTE_ID } from '@/constants/config';
+import { findRoute, PARADAS, ROUTES } from '@/data/seed';
+import { routeLengthKm, snapToRoute } from '@/lib/geo';
 import type {
   Consentimiento,
   MetricaEspera,
@@ -11,6 +11,7 @@ import type {
 
 import {
   advanceVehicle,
+  DEMO_SPEED_MPS,
   DEMO_VEHICLES,
   isInSignalLoss,
   positionAt,
@@ -19,7 +20,7 @@ import {
 import type { Repository, Unsubscribe } from './repository';
 
 const SIMULATOR_TICK_MS = 3_000;
-const DRIVER_SPEED_MPS = 7;
+const defaultRoute = findRoute(DEFAULT_ROUTE_ID)!;
 
 const DEMO_IDS = new Set(DEMO_VEHICLES.map((vehicle) => vehicle.vehiculo_id));
 
@@ -79,12 +80,24 @@ function tick() {
       continue;
     }
 
-    const advanced = advanceVehicle(PILOT_ROUTE, simVehicle, SIMULATOR_TICK_MS);
+    const route = findRoute(simVehicle.rutaId);
+    if (!route) continue;
+
+    const advanced = isDemoVehicle(vehiculoId)
+      ? advanceVehicle(simVehicle, SIMULATOR_TICK_MS)
+      : {
+          ...simVehicle,
+          progressKm: Math.min(
+            routeLengthKm(route),
+            simVehicle.progressKm + (simVehicle.speedMps * SIMULATOR_TICK_MS) / 1_000_000,
+          ),
+        };
     simVehicles.set(vehiculoId, advanced);
 
-    const position = positionAt(PILOT_ROUTE, advanced.progressKm);
+    const position = positionAt(findRoute(advanced.rutaId)!, advanced.progressKm);
     vehicles.set(vehiculoId, {
       ...current,
+      ruta_activa: advanced.rutaId,
       lat: position.lat,
       lng: position.lng,
       timestamp_ultima_actualizacion: now,
@@ -126,13 +139,13 @@ function seedDemoVehicles() {
     const simVehicle: SimVehicle = { ...demo };
     simVehicles.set(demo.vehiculo_id, simVehicle);
 
-    const position = positionAt(PILOT_ROUTE, simVehicle.progressKm);
+    const position = positionAt(findRoute(demo.rutaId)!, simVehicle.progressKm);
     vehicles.set(demo.vehiculo_id, {
       vehiculo_id: demo.vehiculo_id,
       lat: position.lat,
       lng: position.lng,
       timestamp_ultima_actualizacion: now,
-      ruta_activa: PILOT_ROUTE_ID,
+      ruta_activa: demo.rutaId,
       velocidad_actual: demo.speedMps,
       en_servicio: true,
     });
@@ -140,14 +153,17 @@ function seedDemoVehicles() {
 }
 
 function registerDriverVehicle(vehiculo: VehiculoActivo) {
-  const snap = snapToRoute(PILOT_ROUTE, {
+  const route = findRoute(vehiculo.ruta_activa);
+  if (!route) return;
+  const snap = snapToRoute(route, {
     latitude: vehiculo.lat,
     longitude: vehiculo.lng,
   });
   simVehicles.set(vehiculo.vehiculo_id, {
     vehiculo_id: vehiculo.vehiculo_id,
+    rutaId: route.id,
     progressKm: snap.alongKm,
-    speedMps: DRIVER_SPEED_MPS,
+    speedMps: DEMO_SPEED_MPS,
   });
 }
 
@@ -180,13 +196,18 @@ export const mockRepository: Repository = {
     };
   },
 
+  subscribeRoutes(onData): Unsubscribe {
+    onData(ROUTES);
+    return () => undefined;
+  },
+
   subscribeRoute(routeId, onData): Unsubscribe {
-    onData(routeId === PILOT_ROUTE_ID ? PILOT_ROUTE : null);
+    onData(findRoute(routeId) ?? null);
     return () => undefined;
   },
 
   subscribeStops(routeId, onData): Unsubscribe {
-    onData(PILOT_PARADAS.filter((parada) => parada.ruta_id === routeId));
+    onData(PARADAS.filter((parada) => parada.ruta_id === routeId));
     return () => undefined;
   },
 
@@ -199,14 +220,20 @@ export const mockRepository: Repository = {
     emitVehicles();
   },
 
+  async setVehicleRoute(vehiculoId, routeId): Promise<void> {
+    const current = vehicles.get(vehiculoId);
+    if (!current?.en_servicio) throw new Error('No hay un turno activo.');
+    await mockRepository.publishVehicle({ ...current, ruta_activa: routeId });
+  },
+
   async setService(vehiculoId, enServicio): Promise<void> {
     const current = vehicles.get(vehiculoId);
     const base: VehiculoActivo = current ?? {
       vehiculo_id: vehiculoId,
-      lat: PILOT_ROUTE.polyline[0].latitude,
-      lng: PILOT_ROUTE.polyline[0].longitude,
+      lat: defaultRoute.polyline[0].latitude,
+      lng: defaultRoute.polyline[0].longitude,
       timestamp_ultima_actualizacion: Date.now(),
-      ruta_activa: PILOT_ROUTE_ID,
+      ruta_activa: DEFAULT_ROUTE_ID,
       velocidad_actual: 0,
       en_servicio: enServicio,
     };

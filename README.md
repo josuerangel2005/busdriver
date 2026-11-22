@@ -3,10 +3,11 @@
 App móvil de rastreo de transporte público para Cúcuta. Una sola app Expo con
 selección de rol:
 
-- **Conductor**: acepta el aviso de tratamiento de datos, inicia/termina turno y
-  transmite su ubicación en segundo plano.
-- **Pasajero**: ve la ruta piloto, las paradas, los vehículos en servicio y el
-  tiempo estimado de llegada (ETA) por parada.
+- **Conductor**: acepta el aviso de tratamiento de datos, elige línea y sentido antes de
+  iniciar el turno y transmite su ubicación en segundo plano. Puede cambiar de
+  sentido con el vehículo detenido; para cambiar de línea debe finalizar el turno.
+- **Pasajero**: elige línea y sentido, y ve su trazado aproximado, paradas, vehículos en
+  servicio y tiempos estimados de llegada (ETA). La selección se guarda en el dispositivo.
 
 Stack: Expo SDK 58 + TypeScript + expo-router, MapLibre + OpenStreetMap,
 Firebase (Auth anónima + Realtime Database), expo-location + expo-task-manager,
@@ -21,8 +22,9 @@ Firebase (Auth anónima + Realtime Database), expo-location + expo-task-manager,
 
 ## Puesta en marcha (modo simulado)
 
-El modo simulado no necesita Firebase: cuatro busetas recorren la ruta piloto y
-actualizan su posición cada 3 segundos. La buseta `demo-buseta-3` pierde la señal
+El modo simulado no necesita Firebase: las busetas recorren las tres líneas, alternan
+ida y vuelta al llegar a cada terminal y actualizan su posición cada 3 segundos.
+La separación inicial aproxima 8 min en Directo Cúcuta y 17 min en Campo Verde y Natura. La buseta `demo-buseta-3` pierde la señal
 45 s cada 3 min para que se vea el estado **desactualizado** durante más tiempo
 que el umbral de 30 s. En este modo, el conductor **no** usa el GPS del teléfono: al iniciar el turno la
 buseta se mueve sola por la ruta. Con el modo simulado activo (cualquier valor
@@ -57,7 +59,10 @@ pin cuando el Kotlin por defecto de Expo lea metadata 2.4.
 3. Crea una **Realtime Database** y publica las reglas de
    `firebase/database.rules.json`.
 4. Importa `firebase/seed.json` en la Realtime Database (consola → menú ⋮ →
-   Importar JSON).
+   Importar JSON). Si ya usabas el catálogo anterior, debes volver a importar el
+   nuevo `firebase/seed.json` antes de usar esta versión. Finaliza los turnos
+   activos y respalda la base: actualiza solo `rutas` y `paradas` desde el
+   archivo si necesitas conservar los demás nodos.
 5. Descarga `google-services.json` (Android) y `GoogleService-Info.plist`
    (iOS) en la raíz del proyecto.
 6. En `.env` coloca `EXPO_PUBLIC_USE_MOCK=false`.
@@ -93,7 +98,7 @@ src/
   components/          Screen, Button, Badge, RouteMap, EtaCard
   constants/           configuración y tema
   data/                trazado aproximado y paradas de referencia
-  hooks/               suscripción a datos del piloto
+  hooks/               suscripción a datos de ruta
   lib/                 geometría, ETA y métricas SQLite
   services/            repositorio (mock y Firebase), tracking
   stores/              zustand (auth, tracking)
@@ -205,6 +210,20 @@ equipo, no paradas oficiales.
 
 El operador publica un primer turno a las 5:30 a. m., una frecuencia de 6 a 10
 minutos y un último turno a las 5:38 p. m.
+
+**Campo Verde** y **Natura** (publicada como **Natura – Vista Hermosa**) se
+digitalizaron a partir de las capturas de mapas del mismo operador (consulta
+del 22 de noviembre de 2026). Se ubicaron puntos de paso en un mapa base de
+OpenStreetMap y se trazaron los recorridos sobre sus calles con OSRM. Las tres
+líneas comparten el tramo Terminal → Autopista. El operador no publica el
+recorrido de vuelta: se modela por las mismas calles en sentido inverso.
+Todas las paradas son referencias no oficiales.
+
+| Línea | Primer turno | Último turno | Frecuencia publicada |
+| --- | --- | --- | --- |
+| Directo Cúcuta | 5:30 a. m. | 5:38 p. m. | 6–10 min |
+| Campo Verde | 5:15 a. m. | 6:40 p. m. | 15–20 min |
+| Natura – Vista Hermosa | 5:30 a. m. | 6:35 p. m. | 15–20 min |
 
 ## Limitaciones conocidas
 
