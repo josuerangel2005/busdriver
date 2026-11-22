@@ -23,8 +23,10 @@ vi.mock('react-native', () => ({
   View: () => null,
 }));
 
-function routeCamera(ruta: ComponentProps<typeof RouteMap>['ruta'], placardHeight?: number) {
-  const view = RouteMap({ ruta, paradas: [], vehiculos: [], now: 0, placardHeight });
+vi.mock('@/components/Icon', () => ({ Icon: () => null }));
+
+function routeCamera(ruta: ComponentProps<typeof RouteMap>['ruta'], placardHeight = 148, cleanMode = false, viewportHeight = 420) {
+  const view = RouteMap({ ruta, paradas: [], vehiculos: [], now: 0, placardHeight, cleanMode, viewport: { width: 360, height: viewportHeight }, onViewportLayout: vi.fn() });
   const map = Children.only(view.props.children) as ReactElement<{ children: ReactElement[] }>;
   const camera = Children.toArray(map.props.children).find(
     (child) => isValidElement<ComponentProps<typeof Camera>>(child) && child.type === Camera,
@@ -68,6 +70,27 @@ describe('RouteMap camera', () => {
     if (!('bounds' in outbound.props)) throw new Error('Outbound bounds not rendered');
     expect(inbound.props).toMatchObject({ bounds: outbound.props.bounds });
     expect(inbound.key).not.toBe(outbound.key);
+  });
+
+  it('re-fits the same route with smaller padding when entering clean mode', () => {
+    const normal = routeCamera(directRoute, 120);
+    const clean = routeCamera(directRoute, 120, true);
+    expect(clean.key).not.toBe(normal.key);
+    expect(clean.props.padding).toEqual({ top: 24, right: 24, bottom: 24, left: 24 });
+    // The Android map can still have its previous size when the mode changes.
+    expect(routeCamera(directRoute, 120, true, 640).key)
+      .not.toBe(routeCamera(directRoute, 120, true, 400).key);
+  });
+
+  it('waits for a usable Normal viewport instead of fitting into clipped native padding', () => {
+    // A transient layout during a mode change can be shorter than the placard and margins.
+    expect(routeCamera(directRoute, 144, false, 200).props).toMatchObject({ zoom: 13.5 });
+    const fitted = routeCamera(directRoute, 144, false, 420);
+    expect(fitted.props).toMatchObject({
+      bounds: expect.any(Array),
+      padding: { top: 144 + spacing.xl, right: 40, bottom: 40, left: 40 },
+    });
+    expect(fitted.key).not.toBe(routeCamera(directRoute, 120, false, 420).key);
   });
 
   it('keeps the default camera while the route loads', () => {

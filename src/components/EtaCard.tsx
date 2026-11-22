@@ -11,6 +11,7 @@ type Props = {
   selected?: boolean;
   onPress?: () => void;
   highlight?: boolean;
+  favorite?: boolean;
 };
 
 export function EtaCard({
@@ -18,6 +19,7 @@ export function EtaCard({
   selected = false,
   onPress,
   highlight = false,
+  favorite = false,
 }: Props) {
   const { parada, distanciaRestanteM, etaSegundos, pasada, desactualizado } = stopEta;
 
@@ -53,6 +55,7 @@ export function EtaCard({
 
   return (
     <Placard tone={tone} selected={selected} onPress={onPress}>
+      {favorite && <FavoriteStopLabel color={foreground} />}
       <View style={styles.header}>
         <View style={styles.titleRow}>
           <View style={styles.order}>
@@ -98,7 +101,22 @@ export function EtaCard({
   );
 }
 
+export function FavoriteStopLabel({ color }: { color: string }) {
+  return (
+    <View style={styles.favorite}>
+      <Icon name="star" color={color} size={16} />
+      <Text style={[styles.stateText, { color }]}>Mi paradero</Text>
+    </View>
+  );
+}
+
 const styles = StyleSheet.create({
+  favorite: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    gap: spacing.xs,
+    marginBottom: spacing.sm,
+  },
   header: {
     flexDirection: 'row',
     alignItems: 'center',

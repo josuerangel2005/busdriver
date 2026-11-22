@@ -1,11 +1,13 @@
 import { Camera, GeoJSONSource, Layer, Map, Marker } from '@maplibre/maplibre-react-native';
 import type { Feature, LineString } from 'geojson';
-import { Pressable, StyleSheet, Text, View } from 'react-native';
+import { type LayoutChangeEvent, Pressable, StyleSheet, Text, View } from 'react-native';
 
+import { Icon } from '@/components/Icon';
 import { MAP_STYLE_URL } from '@/constants/config';
-import { colors, fontFamily, radius, spacing } from '@/constants/theme';
+import { colors, fontFamily, radius } from '@/constants/theme';
 import { isStale } from '@/lib/eta';
 import { getRouteBounds } from '@/lib/geo';
+import { routeMapPadding } from '@/lib/passengerMapMode';
 import type { Parada, Ruta, VehiculoActivo } from '@/types/models';
 
 type Props = {
@@ -16,10 +18,13 @@ type Props = {
   onSelectStop?: (parada: Parada) => void;
   now: number;
   placardHeight?: number;
+  cleanMode?: boolean;
+  viewport?: { width: number; height: number };
+  onViewportLayout: (event: LayoutChangeEvent) => void;
+  favoriteStopId?: string | null;
 };
 
 const DEFAULT_CENTER: [number, number] = [-72.5008, 7.898];
-const ROUTE_PADDING = { top: 180, right: 40, bottom: 40, left: 40 };
 
 export function RouteMap({
   ruta,
@@ -29,11 +34,13 @@ export function RouteMap({
   onSelectStop,
   now,
   placardHeight,
+  cleanMode = false,
+  viewport,
+  onViewportLayout,
+  favoriteStopId,
 }: Props) {
   const bounds = ruta ? getRouteBounds(ruta.polyline) : undefined;
-  const padding = placardHeight === undefined
-    ? ROUTE_PADDING
-    : { ...ROUTE_PADDING, top: placardHeight + spacing.xl };
+  const padding = routeMapPadding(cleanMode, placardHeight, viewport);
   const firstPoint = ruta?.polyline[0];
   const center: [number, number] = firstPoint
     ? [firstPoint.longitude, firstPoint.latitude]
@@ -52,9 +59,13 @@ export function RouteMap({
 
   return (
     <View style={styles.container}>
-      <Map mapStyle={MAP_STYLE_URL} style={styles.map}>
-        {bounds ? (
-          <Camera key={ruta?.id} bounds={bounds} padding={padding} />
+      <Map mapStyle={MAP_STYLE_URL} style={styles.map} onLayout={onViewportLayout}>
+        {bounds && padding ? (
+          <Camera
+            key={`${ruta?.id}:${cleanMode}:${viewport?.width}:${viewport?.height}:${padding.top}`}
+            bounds={bounds}
+            padding={padding}
+          />
         ) : (
           <Camera center={center} zoom={13.5} />
         )}
@@ -68,20 +79,30 @@ export function RouteMap({
             />
           </GeoJSONSource>
         ) : null}
-        {paradas.map((parada) => (
-          <Marker key={parada.id} lngLat={[parada.lng, parada.lat]} anchor="bottom">
-            <Pressable onPress={() => onSelectStop?.(parada)} hitSlop={10}>
-              <View
-                style={[
-                  styles.stop,
-                  selectedStopId === parada.id && styles.stopSelected,
-                ]}
+        {paradas.map((parada) => {
+          const favorite = parada.id === favoriteStopId;
+          return (
+            <Marker key={parada.id} lngLat={[parada.lng, parada.lat]} anchor="bottom">
+              <Pressable
+                accessibilityRole="button"
+                accessibilityLabel={favorite ? `${parada.nombre}, Mi paradero` : parada.nombre}
+                onPress={() => onSelectStop?.(parada)}
+                style={styles.stopTarget}
               >
-                <Text style={styles.stopText}>{parada.orden}</Text>
-              </View>
-            </Pressable>
-          </Marker>
-        ))}
+                <View
+                  style={[
+                    styles.stop,
+                    favorite && styles.stopFavorite,
+                    selectedStopId === parada.id && styles.stopSelected,
+                  ]}
+                >
+                  {favorite ? <Icon name="star" color={colors.onYellow} size={20} />
+                    : <Text style={styles.stopText}>{parada.orden}</Text>}
+                </View>
+              </Pressable>
+            </Marker>
+          );
+        })}
         {vehiculos.map((vehiculo) => {
           const stale = isStale(vehiculo.timestamp_ultima_actualizacion, now);
           return (
@@ -106,6 +127,17 @@ const styles = StyleSheet.create({
   },
   map: {
     flex: 1,
+  },
+  stopTarget: {
+    width: 48,
+    height: 48,
+    alignItems: 'center',
+    justifyContent: 'flex-end',
+  },
+  stopFavorite: {
+    backgroundColor: colors.signYellow,
+    borderWidth: 2,
+    borderColor: colors.ink,
   },
   stop: {
     width: 28,

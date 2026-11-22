@@ -4,12 +4,13 @@ import { Alert, ScrollView, StyleSheet, Text, View } from 'react-native';
 
 import { Badge } from '@/components/Badge';
 import { Button } from '@/components/Button';
-import { EtaCard } from '@/components/EtaCard';
 import { OfflineNotice } from '@/components/OfflineNotice';
-import { Placard } from '@/components/Placard';
+import { PassengerStopCard } from '@/components/PassengerStopCard';
 import { Screen } from '@/components/Screen';
 import { colors, font, fontFamily, spacing } from '@/constants/theme';
+import { useFavoriteStop } from '@/hooks/useFavoriteStop';
 import { useNow, useRouteData } from '@/hooks/useRouteData';
+import { favoriteFirst } from '@/lib/favoriteStop';
 import { passengerStatus } from '@/lib/offlinePresentation';
 import { useConnection } from '@/stores/connection';
 import { computeBestStopEtas } from '@/lib/eta';
@@ -40,6 +41,7 @@ export default function PassengerEtaScreen() {
   const connection = useConnection((state) => state.status);
   const { routeId } = useLocalSearchParams<{ routeId?: string }>();
   const { ruta, paradas, vehiculos } = useRouteData(routeId);
+  const { favorite } = useFavoriteStop(ruta?.id, paradas);
   const now = useNow(5_000);
   const [selectedStopId, setSelectedStopId] = useState<string | null>(null);
   const [activeTrial, setActiveTrial] = useState<ActiveTrial | null>(null);
@@ -75,6 +77,9 @@ export default function PassengerEtaScreen() {
     () => etas.find((stopEta) => !stopEta.pasada)?.parada.id ?? null,
     [etas],
   );
+
+  const etasByStop = new Map(etas.map((eta) => [eta.parada.id, eta]));
+  const orderedStops = favoriteFirst(paradas, favorite?.id ?? null, (stop) => stop.id);
 
   function beginWait() {
     if (!selectedStopId) {
@@ -155,24 +160,22 @@ export default function PassengerEtaScreen() {
           de la ruta, no en línea recta.
         </Text>
 
-        {etas.length === 0 ? (
+        {!favorite && etas.length === 0 ? (
           <Text style={styles.empty}>
             No hay datos para calcular el tiempo estimado en este momento.
           </Text>
         ) : null}
-        {etas.map((stopEta) => (
-          <EtaCard
-            key={stopEta.parada.id}
-            stopEta={stopEta}
-            selected={selectedStopId === stopEta.parada.id}
-            highlight={highlightStopId === stopEta.parada.id}
-            onPress={() => setSelectedStopId(stopEta.parada.id)}
+        {orderedStops.map((stop) => (
+          <PassengerStopCard
+            key={stop.id}
+            stop={stop}
+            eta={etasByStop.get(stop.id)}
+            favorite={favorite?.id === stop.id}
+            offline={connection === 'offline'}
+            selected={selectedStopId === stop.id}
+            highlight={highlightStopId === stop.id}
+            onPress={() => setSelectedStopId(stop.id)}
           />
-        ))}
-        {!hasVehicle && paradas.map((stop) => (
-          <Placard key={stop.id} tone="plain" selected={selectedStopId === stop.id} onPress={() => setSelectedStopId(stop.id)}>
-            <Text style={styles.hint}>{stop.orden}. {stop.nombre}</Text>
-          </Placard>
         ))}
 
         <View style={styles.section}>
