@@ -1,4 +1,4 @@
-# Rastreo Cúcuta
+# Buseta Ya
 
 App móvil de rastreo de transporte público para Cúcuta. Una sola app Expo con
 selección de rol:
@@ -21,10 +21,10 @@ Firebase (Auth anónima + Realtime Database), expo-location + expo-task-manager,
 
 ## Puesta en marcha (modo simulado)
 
-El modo simulado no necesita Firebase: tres busetas recorren la ruta piloto cada
-3 segundos. La buseta `demo-buseta-3` pierde la señal 45 s cada 3 min para que se
-vea el estado **desactualizado** durante más tiempo que el umbral de 30 s. En
-este modo, el conductor **no** usa el GPS del teléfono: al iniciar el turno la
+El modo simulado no necesita Firebase: cuatro busetas recorren la ruta piloto y
+actualizan su posición cada 3 segundos. La buseta `demo-buseta-3` pierde la señal
+45 s cada 3 min para que se vea el estado **desactualizado** durante más tiempo
+que el umbral de 30 s. En este modo, el conductor **no** usa el GPS del teléfono: al iniciar el turno la
 buseta se mueve sola por la ruta. Con el modo simulado activo (cualquier valor
 distinto de `false` en `EXPO_PUBLIC_USE_MOCK`) los plugins de React Native
 Firebase se omiten automáticamente en la configuración de Expo, por lo que **no
@@ -92,7 +92,7 @@ src/
     (passenger)/       mapa y detalle de ETA
   components/          Screen, Button, Badge, RouteMap, EtaCard
   constants/           configuración y tema
-  data/                ruta y paradas placeholder
+  data/                trazado aproximado y paradas de referencia
   hooks/               suscripción a datos del piloto
   lib/                 geometría, ETA y métricas SQLite
   services/            repositorio (mock y Firebase), tracking
@@ -191,9 +191,23 @@ Metas: pings ≤ 10 s, latencia ≤ 15 s, error de ETA ≤ 3 min. El botón
 **Borrar registros de prueba** del panel del conductor elimina pings, latencias
 y pruebas de ETA de este dispositivo; no borra las mediciones de espera.
 
+## Fuente de los datos de la ruta
+
+El trazado aproximado de **Directo Cúcuta** (unos 11,7 km) va de la Terminal de
+Transportes a La Parada por el centro, San Mateo, la Autopista Internacional y
+Villa del Rosario. El equipo lo digitalizó a partir de la captura del mapa
+publicada por [Empresa Corta Distancia](https://cortadistancia.com.co/?page_id=674)
+(consulta del 21 de noviembre de 2026) y lo ajustó a las vías de OpenStreetMap
+con OSRM. Las seis paradas son puntos de referencia aproximados elegidos por el
+equipo, no paradas oficiales.
+
+El operador publica un primer turno a las 5:30 a. m., una frecuencia de 6 a 10
+minutos y un último turno a las 5:38 p. m.
+
 ## Limitaciones conocidas
 
-- La ruta y las paradas son **placeholder** hasta cargar el trazado real.
+- El trazado no es una geometría oficial y las paradas no están validadas por
+  el operador.
 - El estilo de mapa por defecto es **OpenFreeMap Liberty** (OpenStreetMap, sin
   API key); puedes cambiarlo con `EXPO_PUBLIC_MAP_STYLE_URL`.
 - Las métricas se guardan localmente en SQLite; el CSV se comparte desde el

@@ -1,11 +1,11 @@
 import { afterEach, beforeEach, describe, expect, it, vi } from 'vitest';
 
 import { PILOT_ROUTE_ID } from '@/constants/config';
-import { PLACEHOLDER_ROUTE } from '@/data/seed';
+import { PILOT_ROUTE } from '@/data/seed';
 import { mockRepository, resetMockState } from '@/services/mockRepository';
 import type { VehiculoActivo } from '@/types/models';
 
-const DEMO_IDS = ['demo-buseta-1', 'demo-buseta-2', 'demo-buseta-3'];
+const DEMO_IDS = ['demo-buseta-1', 'demo-buseta-2', 'demo-buseta-3', 'demo-buseta-4'];
 
 function captureVehicles() {
   const snapshots: VehiculoActivo[][] = [];
@@ -34,14 +34,14 @@ afterEach(() => {
 });
 
 describe('mockRepository vehicle simulation', () => {
-  it('a passenger subscription alone receives 3 in-service demo vehicles that move on each tick', () => {
+  it('a passenger subscription alone receives 4 in-service demo vehicles that move on each tick', () => {
     const { snapshots } = captureVehicles();
     const initial = latest(snapshots);
     const inService = initial.filter(
       (vehicle) => vehicle.en_servicio && vehicle.ruta_activa === PILOT_ROUTE_ID,
     );
 
-    expect(inService).toHaveLength(3);
+    expect(inService).toHaveLength(4);
     expect(inService.map((vehicle) => vehicle.vehiculo_id).sort()).toEqual(DEMO_IDS);
 
     vi.advanceTimersByTime(3_000);
@@ -84,8 +84,8 @@ describe('mockRepository vehicle simulation', () => {
 
     await mockRepository.publishVehicle({
       vehiculo_id: driverId,
-      lat: PLACEHOLDER_ROUTE.polyline[0].latitude,
-      lng: PLACEHOLDER_ROUTE.polyline[0].longitude,
+      lat: PILOT_ROUTE.polyline[0].latitude,
+      lng: PILOT_ROUTE.polyline[0].longitude,
       timestamp_ultima_actualizacion: Date.now(),
       ruta_activa: PILOT_ROUTE_ID,
       velocidad_actual: 0,

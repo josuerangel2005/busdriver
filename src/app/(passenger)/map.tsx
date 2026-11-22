@@ -70,7 +70,7 @@ export default function PassengerMapScreen() {
           <Placard tone="plain">
             <View style={styles.placardContent}>
               <View style={styles.overlayHeader}>
-                <Text style={styles.routeName} numberOfLines={1}>
+                <Text style={styles.routeName} numberOfLines={2}>
                   {ruta?.nombre ?? 'Cargando ruta…'}
                 </Text>
                 <Badge
@@ -84,6 +84,7 @@ export default function PassengerMapScreen() {
                   tone={!hasVehicle ? 'neutral' : stale ? 'danger' : 'success'}
                 />
               </View>
+              {ruta ? <Text style={styles.routeNote}>Trazado aproximado</Text> : null}
               <Pressable
                 accessibilityRole="button"
                 hitSlop={{ top: 16, bottom: 16, left: 8, right: 8 }}
@@ -161,6 +162,10 @@ const styles = StyleSheet.create({
     fontFamily: fontFamily.display,
     fontSize: font.title,
     lineHeight: 23,
+  },
+  routeNote: {
+    color: colors.inkMuted,
+    fontSize: font.body,
   },
   roleSwitchButton: {
     alignSelf: 'flex-start',

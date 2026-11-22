@@ -1,5 +1,5 @@
 import { PILOT_ROUTE_ID } from '@/constants/config';
-import { PLACEHOLDER_PARADAS, PLACEHOLDER_ROUTE } from '@/data/seed';
+import { PILOT_PARADAS, PILOT_ROUTE } from '@/data/seed';
 import { snapToRoute } from '@/lib/geo';
 import type {
   Consentimiento,
@@ -79,10 +79,10 @@ function tick() {
       continue;
     }
 
-    const advanced = advanceVehicle(PLACEHOLDER_ROUTE, simVehicle, SIMULATOR_TICK_MS);
+    const advanced = advanceVehicle(PILOT_ROUTE, simVehicle, SIMULATOR_TICK_MS);
     simVehicles.set(vehiculoId, advanced);
 
-    const position = positionAt(PLACEHOLDER_ROUTE, advanced.progressKm);
+    const position = positionAt(PILOT_ROUTE, advanced.progressKm);
     vehicles.set(vehiculoId, {
       ...current,
       lat: position.lat,
@@ -126,7 +126,7 @@ function seedDemoVehicles() {
     const simVehicle: SimVehicle = { ...demo };
     simVehicles.set(demo.vehiculo_id, simVehicle);
 
-    const position = positionAt(PLACEHOLDER_ROUTE, simVehicle.progressKm);
+    const position = positionAt(PILOT_ROUTE, simVehicle.progressKm);
     vehicles.set(demo.vehiculo_id, {
       vehiculo_id: demo.vehiculo_id,
       lat: position.lat,
@@ -140,7 +140,7 @@ function seedDemoVehicles() {
 }
 
 function registerDriverVehicle(vehiculo: VehiculoActivo) {
-  const snap = snapToRoute(PLACEHOLDER_ROUTE, {
+  const snap = snapToRoute(PILOT_ROUTE, {
     latitude: vehiculo.lat,
     longitude: vehiculo.lng,
   });
@@ -181,12 +181,12 @@ export const mockRepository: Repository = {
   },
 
   subscribeRoute(routeId, onData): Unsubscribe {
-    onData(routeId === PILOT_ROUTE_ID ? PLACEHOLDER_ROUTE : null);
+    onData(routeId === PILOT_ROUTE_ID ? PILOT_ROUTE : null);
     return () => undefined;
   },
 
   subscribeStops(routeId, onData): Unsubscribe {
-    onData(PLACEHOLDER_PARADAS.filter((parada) => parada.ruta_id === routeId));
+    onData(PILOT_PARADAS.filter((parada) => parada.ruta_id === routeId));
     return () => undefined;
   },
 
@@ -203,8 +203,8 @@ export const mockRepository: Repository = {
     const current = vehicles.get(vehiculoId);
     const base: VehiculoActivo = current ?? {
       vehiculo_id: vehiculoId,
-      lat: PLACEHOLDER_ROUTE.polyline[0].latitude,
-      lng: PLACEHOLDER_ROUTE.polyline[0].longitude,
+      lat: PILOT_ROUTE.polyline[0].latitude,
+      lng: PILOT_ROUTE.polyline[0].longitude,
       timestamp_ultima_actualizacion: Date.now(),
       ruta_activa: PILOT_ROUTE_ID,
       velocidad_actual: 0,

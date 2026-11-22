@@ -1,6 +1,6 @@
 import { along } from '@turf/along';
 
-import { PLACEHOLDER_ROUTE } from '@/data/seed';
+import { PILOT_ROUTE } from '@/data/seed';
 import { routeLengthKm, toLineString } from '@/lib/geo';
 import type { Ruta } from '@/types/models';
 
@@ -49,26 +49,30 @@ export function isInSignalLoss(vehicle: SimVehicle, elapsedMs: number): boolean 
   return cycleMs >= signalLossEveryMs - signalLossDurationMs;
 }
 
-const DEMO_ROUTE_LENGTH_KM = routeLengthKm(PLACEHOLDER_ROUTE);
+const DEMO_ROUTE_LENGTH_KM = routeLengthKm(PILOT_ROUTE);
 
-// Three demo buses on the pilot route. Only the third one loses signal so the
-// "desactualizado" state becomes visible for longer than STALE_THRESHOLD_MS.
+// Four evenly spaced buses at urban speeds approximate the published 6–10 min headway (~8 min).
 export const DEMO_VEHICLES: SimVehicle[] = [
   {
     vehiculo_id: 'demo-buseta-1',
     progressKm: 0,
-    speedMps: 6,
+    speedMps: 6.5,
   },
   {
     vehiculo_id: 'demo-buseta-2',
-    progressKm: DEMO_ROUTE_LENGTH_KM * 0.35,
+    progressKm: DEMO_ROUTE_LENGTH_KM * 0.25,
     speedMps: 7,
   },
   {
     vehiculo_id: 'demo-buseta-3',
-    progressKm: DEMO_ROUTE_LENGTH_KM * 0.7,
-    speedMps: 8,
+    progressKm: DEMO_ROUTE_LENGTH_KM * 0.5,
+    speedMps: 7.5,
     signalLossEveryMs: 180_000,
     signalLossDurationMs: 45_000,
+  },
+  {
+    vehiculo_id: 'demo-buseta-4',
+    progressKm: DEMO_ROUTE_LENGTH_KM * 0.75,
+    speedMps: 7,
   },
 ];

@@ -1,4 +1,4 @@
-export const APP_NAME = 'Rastreo Cúcuta';
+export const APP_NAME = 'Buseta Ya';
 
 export const PILOT_ROUTE_ID = 'ruta-piloto-01';
 

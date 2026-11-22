@@ -10,7 +10,7 @@ import { Placard } from '@/components/Placard';
 import { Screen } from '@/components/Screen';
 import { PILOT_ROUTE_ID, USE_MOCK } from '@/constants/config';
 import { colors, font, fontFamily, spacing } from '@/constants/theme';
-import { PLACEHOLDER_ROUTE } from '@/data/seed';
+import { PILOT_ROUTE } from '@/data/seed';
 import { clearFieldLogs, exportFieldLogCsv, listPings } from '@/lib/fieldLog';
 import { summarizePings } from '@/lib/fieldTest';
 import { canSwitchRole } from '@/lib/roleSwitch';
@@ -90,8 +90,8 @@ export default function ShiftScreen() {
         {
           getCurrentPosition: USE_MOCK
             ? async () => ({
-                lat: PLACEHOLDER_ROUTE.polyline[0].latitude,
-                lng: PLACEHOLDER_ROUTE.polyline[0].longitude,
+                lat: PILOT_ROUTE.polyline[0].latitude,
+                lng: PILOT_ROUTE.polyline[0].longitude,
                 timestamp: Date.now(),
                 speed: 0,
               })
@@ -217,9 +217,9 @@ export default function ShiftScreen() {
         </Placard>
 
         <View style={styles.section}>
-          <Text style={styles.sectionTitle}>{PLACEHOLDER_ROUTE.nombre}</Text>
+          <Text style={styles.sectionTitle}>{PILOT_ROUTE.nombre}</Text>
           <Text style={styles.muted}>
-            {PLACEHOLDER_ROUTE.polyline.length} puntos de recorrido · actualización cada 10 s
+            {PILOT_ROUTE.polyline.length} puntos de recorrido · actualización cada 10 s
           </Text>
         </View>
 

@@ -23,7 +23,7 @@ ETA is computed from the distance remaining along the route's own polyline and t
 
 - Passenger flow: map with route, stops and buses; per-stop ETA list; optional wait measurement for the study.
 - Driver flow: data-treatment notice and consent, shift start/end, background location transmission, transmission test summary.
-- Demo mode (default) simulates three buses on a placeholder route with no backend; Firebase mode uses Realtime Database and anonymous auth.
+- Demo mode (default) simulates four buses on the approximate Directo Cúcuta route with no backend; Firebase mode uses Realtime Database and anonymous auth.
 
 ## Capabilities and Constraints
 
@@ -34,11 +34,11 @@ ETA is computed from the distance remaining along the route's own polyline and t
 
 ## Brand Commitments
 
-Name: "Rastreo Cúcuta". No mandated logo, colors or typography (none from the university either).
+Name: "Buseta Ya". The logo is a yellow painted-sign placard with an ink outline, a bus silhouette, and “YA” in Anton. No university branding.
 
 ## Evidence on Hand
 
-- No real route yet: `src/data/seed.ts` is a placeholder route with five sample stops; it must be labelled as such until replaced.
+- The Directo Cúcuta route in `src/data/seed.ts` was traced from the [Empresa Corta Distancia route-map screenshot](https://cortadistancia.com.co/?page_id=674) (accessed 2026-11-21) and snapped to OpenStreetMap streets with OSRM. The trace is approximate and the six team-selected reference stops are not official.
 - No users, testimonials, ridership or performance figures exist. Never fabricate them.
 
 ## Product Principles

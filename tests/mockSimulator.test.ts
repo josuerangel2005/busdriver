@@ -1,6 +1,6 @@
 import { describe, expect, it } from 'vitest';
 
-import { PLACEHOLDER_ROUTE } from '@/data/seed';
+import { PILOT_ROUTE } from '@/data/seed';
 import { routeLengthKm } from '@/lib/geo';
 import {
   advanceVehicle,
@@ -12,14 +12,14 @@ import {
 
 describe('advanceVehicle', () => {
   it('advances by speed*dt and wraps to 0 past the route length', () => {
-    const totalKm = routeLengthKm(PLACEHOLDER_ROUTE);
+    const totalKm = routeLengthKm(PILOT_ROUTE);
     const vehicle: SimVehicle = {
       vehiculo_id: 'test',
       progressKm: 0,
       speedMps: 5,
     };
 
-    const advanced = advanceVehicle(PLACEHOLDER_ROUTE, vehicle, 2_000);
+    const advanced = advanceVehicle(PILOT_ROUTE, vehicle, 2_000);
     expect(advanced.progressKm).toBeCloseTo(0.01, 6);
 
     const nearEnd: SimVehicle = {
@@ -27,22 +27,22 @@ describe('advanceVehicle', () => {
       progressKm: totalKm - 0.001,
       speedMps: 9,
     };
-    const wrapped = advanceVehicle(PLACEHOLDER_ROUTE, nearEnd, 3_000);
+    const wrapped = advanceVehicle(PILOT_ROUTE, nearEnd, 3_000);
     expect(wrapped.progressKm).toBe(0);
   });
 });
 
 describe('positionAt', () => {
   it('maps 0 and the route length to the polyline endpoints', () => {
-    const totalKm = routeLengthKm(PLACEHOLDER_ROUTE);
-    const first = PLACEHOLDER_ROUTE.polyline[0];
-    const last = PLACEHOLDER_ROUTE.polyline[PLACEHOLDER_ROUTE.polyline.length - 1];
+    const totalKm = routeLengthKm(PILOT_ROUTE);
+    const first = PILOT_ROUTE.polyline[0];
+    const last = PILOT_ROUTE.polyline[PILOT_ROUTE.polyline.length - 1];
 
-    const start = positionAt(PLACEHOLDER_ROUTE, 0);
+    const start = positionAt(PILOT_ROUTE, 0);
     expect(start.lat).toBeCloseTo(first.latitude, 5);
     expect(start.lng).toBeCloseTo(first.longitude, 5);
 
-    const end = positionAt(PLACEHOLDER_ROUTE, totalKm);
+    const end = positionAt(PILOT_ROUTE, totalKm);
     expect(end.lat).toBeCloseTo(last.latitude, 5);
     expect(end.lng).toBeCloseTo(last.longitude, 5);
   });
@@ -72,21 +72,18 @@ describe('isInSignalLoss', () => {
 });
 
 describe('DEMO_VEHICLES', () => {
-  it('defines three distinct buses spread along the route with speeds between 5 and 9 m/s', () => {
-    const totalKm = routeLengthKm(PLACEHOLDER_ROUTE);
+  it('defines four evenly spaced buses with speeds between 6.5 and 7.5 m/s', () => {
+    const totalKm = routeLengthKm(PILOT_ROUTE);
 
-    expect(DEMO_VEHICLES).toHaveLength(3);
+    expect(DEMO_VEHICLES).toHaveLength(4);
     expect(new Set(DEMO_VEHICLES.map((v) => v.vehiculo_id))).toEqual(
-      new Set(['demo-buseta-1', 'demo-buseta-2', 'demo-buseta-3']),
+      new Set(['demo-buseta-1', 'demo-buseta-2', 'demo-buseta-3', 'demo-buseta-4']),
     );
-    expect(new Set(DEMO_VEHICLES.map((v) => v.progressKm)).size).toBe(3);
-
-    for (const vehicle of DEMO_VEHICLES) {
-      expect(vehicle.progressKm).toBeGreaterThanOrEqual(0);
-      expect(vehicle.progressKm).toBeLessThan(totalKm);
-      expect(vehicle.speedMps).toBeGreaterThanOrEqual(5);
-      expect(vehicle.speedMps).toBeLessThanOrEqual(9);
-    }
+    DEMO_VEHICLES.forEach((vehicle, index) => {
+      expect(vehicle.progressKm).toBeCloseTo((totalKm * index) / 4, 6);
+      expect(vehicle.speedMps).toBeGreaterThanOrEqual(6.5);
+      expect(vehicle.speedMps).toBeLessThanOrEqual(7.5);
+    });
 
     const lossy = DEMO_VEHICLES.filter((v) => v.signalLossEveryMs != null);
     expect(lossy.map((v) => v.vehiculo_id)).toEqual(['demo-buseta-3']);

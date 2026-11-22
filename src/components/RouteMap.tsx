@@ -1,4 +1,5 @@
 import { Camera, GeoJSONSource, Layer, Map, Marker } from '@maplibre/maplibre-react-native';
+import type { LngLatBounds } from '@maplibre/maplibre-react-native';
 import type { Feature, LineString } from 'geojson';
 import { Pressable, StyleSheet, Text, View } from 'react-native';
 
@@ -17,6 +18,21 @@ type Props = {
 };
 
 const DEFAULT_CENTER: [number, number] = [-72.5008, 7.898];
+const ROUTE_PADDING = { top: 180, right: 40, bottom: 40, left: 40 };
+
+function getRouteBounds(polyline: Ruta['polyline']): LngLatBounds | undefined {
+  if (polyline.length < 2) return undefined;
+
+  const { latitude, longitude } = polyline[0];
+  const bounds: LngLatBounds = [longitude, latitude, longitude, latitude];
+  for (const point of polyline) {
+    bounds[0] = Math.min(bounds[0], point.longitude);
+    bounds[1] = Math.min(bounds[1], point.latitude);
+    bounds[2] = Math.max(bounds[2], point.longitude);
+    bounds[3] = Math.max(bounds[3], point.latitude);
+  }
+  return bounds;
+}
 
 export function RouteMap({
   ruta,
@@ -26,6 +42,7 @@ export function RouteMap({
   onSelectStop,
   now,
 }: Props) {
+  const bounds = ruta ? getRouteBounds(ruta.polyline) : undefined;
   const firstPoint = ruta?.polyline[0];
   const center: [number, number] = firstPoint
     ? [firstPoint.longitude, firstPoint.latitude]
@@ -45,7 +62,11 @@ export function RouteMap({
   return (
     <View style={styles.container}>
       <Map mapStyle={MAP_STYLE_URL} style={styles.map}>
-        <Camera center={center} zoom={13.5} />
+        {bounds ? (
+          <Camera bounds={bounds} padding={ROUTE_PADDING} />
+        ) : (
+          <Camera center={center} zoom={13.5} />
+        )}
         {routeFeature ? (
           <GeoJSONSource id="ruta" data={routeFeature}>
             <Layer
