@@ -139,6 +139,13 @@ aplicar las nuevas validaciones.
 | `npm run typecheck` | Verificación de tipos                     |
 | `npm run lint`      | ESLint                                    |
 
+## Pruebas de reglas
+
+Ejecuta `npm run test:rules` para verificar las reglas de Realtime Database en el emulador local, con el proyecto de demostración `demo-buseta-ya`. Se requiere Java 21 o posterior con la versión instalada de Firebase CLI. La primera ejecución descarga el emulador.
+
+`npm test` ejecuta la suite habitual sin iniciar ni requerir el emulador.
+El emulador de Realtime Database usa el puerto 9400 porque el 9000 suele estar ocupado.
+
 ## Firma de release
 
 Guarda el keystore de release fuera del repositorio. Define estas propiedades
@@ -162,6 +169,8 @@ instalada de Android Build Tools:
 **Antes de cambiar de firma:** un APK firmado con la clave de release no puede
 instalarse sobre uno firmado con la clave de debug. Exporta los CSV de las
 pruebas de campo antes de desinstalar la app; luego instala el nuevo APK.
+Desinstalar la app borra los datos locales del teléfono (registros de pruebas
+de campo, «Mi paradero» y la sesión), por lo que debes exportar los CSV primero.
 
 ## Estructura
 

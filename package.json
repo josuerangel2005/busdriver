@@ -49,9 +49,12 @@
     "zustand": "^5.1.0"
   },
   "devDependencies": {
+    "@firebase/rules-unit-testing": "^6.0.0",
     "@types/react": "~19.3.0",
     "eslint": "^9.0.0",
     "eslint-config-expo": "~58.0.4",
+    "firebase": "^13.4.0",
+    "firebase-tools": "^15.37.0",
     "typescript": "~6.0.3",
     "vitest": "^5.1.0"
   },
@@ -62,7 +65,8 @@
     "web": "expo start --web",
     "lint": "eslint .",
     "test": "vitest run",
-    "typecheck": "tsc --noEmit"
+    "typecheck": "tsc --noEmit",
+    "test:rules": "firebase emulators:exec --only database --project demo-buseta-ya 'vitest run -c vitest.rules.config.ts'"
   },
   "private": true
 }
