@@ -1,6 +1,6 @@
 import { useRouter } from 'expo-router';
 import { useEffect } from 'react';
-import { StyleSheet, Text, View } from 'react-native';
+import { Pressable, StyleSheet, Text, View } from 'react-native';
 
 import { Button } from '@/components/Button';
 import { Icon } from '@/components/Icon';
@@ -12,14 +12,20 @@ import { useAuthStore } from '@/stores/auth';
 
 export default function RoleSelectionScreen() {
   const router = useRouter();
-  const { uid, role, ready, signIn } = useAuthStore();
+  const { uid, role, ready, adminSigningIn, signIn } = useAuthStore();
 
   useEffect(() => {
     if (!ready || !uid || !role) {
       return;
     }
-    router.replace(role === 'conductor' ? '/(driver)/shift' : '/(passenger)/map');
+    if (role === 'admin') {
+      router.replace('/admin');
+    } else {
+      router.replace(role === 'conductor' ? '/(driver)/shift' : '/(passenger)/map');
+    }
   }, [ready, uid, role, router]);
+
+  const actionsDisabled = !ready || !!role || adminSigningIn;
 
   async function choose(nextRole: 'conductor' | 'pasajero') {
     await signIn(nextRole);
@@ -50,12 +56,22 @@ export default function RoleSelectionScreen() {
       </View>
 
       <View style={styles.actions}>
-        <Button label="Soy conductor" onPress={() => choose('conductor')} />
+        <Button label="Soy conductor" disabled={actionsDisabled} onPress={() => choose('conductor')} />
         <Button
           label="Soy pasajero"
+          disabled={actionsDisabled}
           variant="secondary"
           onPress={() => choose('pasajero')}
         />
+        <Pressable
+          accessibilityRole="button"
+          accessibilityState={{ disabled: actionsDisabled }}
+          disabled={actionsDisabled}
+          onPress={() => router.push('/admin/login')}
+          style={({ pressed }) => [styles.adminAction, pressed && styles.pressed]}
+        >
+          <Text style={styles.adminLabel}>Soy administrador</Text>
+        </Pressable>
         {USE_MOCK ? (
           <Text style={styles.note}>
             Modo demostración: los datos se simulan en el dispositivo. Configura Firebase
@@ -114,6 +130,19 @@ const styles = StyleSheet.create({
     alignSelf: 'stretch',
     gap: spacing.sm,
     paddingBottom: spacing.xl,
+  },
+  adminAction: {
+    minHeight: 48,
+    justifyContent: 'center',
+    alignItems: 'center',
+  },
+  adminLabel: {
+    color: colors.inkMuted,
+    fontSize: font.body,
+    textDecorationLine: 'underline',
+  },
+  pressed: {
+    opacity: 0.75,
   },
   note: {
     color: colors.inkMuted,

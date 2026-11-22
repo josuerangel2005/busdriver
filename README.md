@@ -77,6 +77,25 @@ usaría el modo simulado y omitiría Firebase.
 > existir en la raíz del proyecto antes de compilar con
 > `EXPO_PUBLIC_USE_MOCK=false`; sin ellos el build nativo falla.
 
+### Habilitar una cuenta de administrador
+
+1. En **Authentication → Método de acceso**, habilita **Correo electrónico/contraseña**.
+2. En **Authentication → Usuarios**, crea el usuario y copia su UID.
+3. En **Realtime Database → Datos**, agrega `admins/<uid>: true` como valor
+   booleano, no como texto.
+4. En **Realtime Database → Reglas**, vuelve a publicar `firebase/database.rules.json`.
+   En la app, selecciona **Soy administrador** e inicia sesión con esa cuenta.
+
+Solo un operador autorizado de la consola puede conceder o revocar el acceso:
+la app no puede escribir en `admins` y cada usuario solo puede leer su propia entrada.
+
+Las reglas de paradas consultan el catálogo resultante con
+`newData.parent().parent()`, no el estado anterior con `root`. Así una
+actualización multipath puede crear una ruta y sus paradas juntas, pero no
+escribir una parada que apunta a una ruta eliminada en esa misma operación.
+Las reglas permiten eliminar registros; para el catálogo de la app, es
+preferible desactivar las rutas para conservar las referencias existentes.
+
 ## Comandos
 
 | Comando             | Qué hace                                  |
@@ -93,6 +112,7 @@ usaría el modo simulado y omitiría Firebase.
 ```
 src/
   app/                 rutas de expo-router
+    admin/             ingreso y catálogo de solo lectura
     (driver)/          consentimiento y turno
     (passenger)/       mapa y detalle de ETA
   components/          Screen, Button, Badge, RouteMap, EtaCard

@@ -45,4 +45,4 @@ export type MetricaEspera = {
   duracion_ms: number;
 };
 
-export type UserRole = 'conductor' | 'pasajero';
+export type UserRole = 'conductor' | 'pasajero' | 'admin';

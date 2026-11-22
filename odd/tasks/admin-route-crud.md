@@ -14,7 +14,7 @@ Objective: let an admin user create, edit and deactivate routes inside the app. 
 | ID | Specs | Route | Status | Commit |
 |----|-------|-------|--------|--------|
 | T1 | S2 | delegated (Codex, user request) | done | "feat: load the route catalog from Firebase…" |
-| T2 | S3 | delegated (Codex) | pending | |
+| T2 | S3 | delegated (Codex) + independent verifier (high risk item 2) | done (rules unverified on emulator) | "feat: add a secure admin role…" |
 | T3 | S4 | delegated (Codex) | pending | |
 
 ## Log
@@ -24,3 +24,6 @@ Objective: let an admin user create, edit and deactivate routes inside the app. 
 - L3: Finding. `RouteSelector.tsx`, `(passenger)/map.tsx`, `(driver)/shift.tsx`, `services/shift.ts` and `lib/routeSelection.ts` import `ROUTES`, `findRoute` and `PARADAS` from the bundled `src/data/seed.ts`, so routes added to Firebase would never appear.
 - L4 (2026-11-22): T1 done. Codex added `src/lib/routeCatalog.ts` (pure helpers) and `src/stores/routeCatalog.ts` (load order AsyncStorage cache, then bundled seed, then remote Firebase; invalid remote entries dropped) and `Ruta.activa?`. Checks: vitest 79 passed, tsc passed, eslint 0 errors and 6 pre-existing warnings. Device (Motorola, release, Firebase mode): passenger opens with airplane mode on and shows Directo Cúcuta from the cache. Risk: none for T1 (read path only).
 - L5 (2026-11-22, finding, out of T1 scope): with no connection the driver panel stays on "Verificando consentimiento…", because `getConsent` waits on Firebase. This bug predates T1. It goes on the pending "offline notice" item. Offline, the passenger shows "Sin unidades", which can mislead.
+- L6 (2026-11-22, user): "si" (start part 2). Design: role 'admin' chosen on the home screen, email/password sign-in, `admins/<uid> === true` checked after sign-in and on hydrate; rules: only admins write `rutas`/`paradas` with field validation; `admins` read own entry only, write false (console only). Mock mode: demo admin account clearly labeled.
+- L7 (2026-11-22): T2 implemented by Codex. Checks: vitest 104 passed, tsc passed, eslint 0 errors. Device (Motorola): "Soy administrador" opens the admin login; fake credentials are rejected ("No pudimos iniciar sesión…").
+- L8 (2026-11-22, independent verifier): no blockers. S3 partial: client gating is correct, rules are correct by analysis only, with no emulator (firebase CLI and rules-unit-testing not installed). S2 did not regress. Notes for T3: write per id or with a multi-path update, never `set` on the whole `/rutas`; harden with `$other: .validate false`, numeric `polyline/$i`, non-empty `linea_id`; deleting a route orphans its stops, so deactivate instead; an offline admin hydrate may hang on `get()`; the demo admin strings ship in the bundle but grant nothing outside mock mode. Emulator probes 1–8 are listed in the verifier report and are pending until tooling is approved.

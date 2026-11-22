@@ -10,6 +10,7 @@ import type {
 export type Unsubscribe = () => void;
 
 export type Repository = {
+  isAdmin(uid: string): Promise<boolean>;
   subscribeVehicles(
     onData: (vehiculos: VehiculoActivo[]) => void,
     onError?: (error: Error) => void,

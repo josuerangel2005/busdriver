@@ -2,15 +2,36 @@
   "rules": {
     ".read": false,
     ".write": false,
+    "admins": {
+      ".write": false,
+      "$uid": {
+        ".read": "auth != null && auth.uid === $uid"
+      }
+    },
     "rutas": {
       ".read": "auth != null",
       "$rutaId": {
-        ".write": false
+        ".write": "auth != null && root.child('admins').child(auth.uid).val() === true && auth.token.firebase.sign_in_provider === 'password'",
+        ".validate": "newData.hasChildren(['nombre', 'linea_id', 'linea_nombre', 'sentido', 'polyline'])",
+        "nombre": { ".validate": "newData.isString() && newData.val().length >= 1 && newData.val().length <= 120" },
+        "linea_id": { ".validate": "newData.isString()" },
+        "linea_nombre": { ".validate": "newData.isString()" },
+        "sentido": { ".validate": "newData.val() === 'ida' || newData.val() === 'vuelta'" },
+        "polyline": { ".validate": "newData.hasChildren()" },
+        "activa": { ".validate": "newData.isBoolean()" }
       }
     },
     "paradas": {
       ".read": "auth != null",
-      ".write": false
+      "$paradaId": {
+        ".write": "auth != null && root.child('admins').child(auth.uid).val() === true && auth.token.firebase.sign_in_provider === 'password'",
+        ".validate": "newData.hasChildren(['ruta_id', 'nombre', 'lat', 'lng', 'orden']) && newData.child('ruta_id').isString() && newData.child('ruta_id').val().length > 0 && !newData.child('ruta_id').val().contains('/') && newData.parent().parent().child('rutas').child(newData.child('ruta_id').val()).exists()",
+        "ruta_id": { ".validate": "newData.isString()" },
+        "nombre": { ".validate": "newData.isString()" },
+        "lat": { ".validate": "newData.isNumber() && newData.val() >= -90 && newData.val() <= 90" },
+        "lng": { ".validate": "newData.isNumber() && newData.val() >= -180 && newData.val() <= 180" },
+        "orden": { ".validate": "newData.isNumber() && newData.val() >= 1" }
+      }
     },
     "vehiculos_activos": {
       ".read": "auth != null",

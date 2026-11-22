@@ -1,4 +1,4 @@
-import { DEFAULT_ROUTE_ID } from '@/constants/config';
+import { DEFAULT_ROUTE_ID, USE_MOCK } from '@/constants/config';
 import { PARADAS, ROUTES } from '@/data/seed';
 import { bundledCatalog, findRoute } from '@/lib/routeCatalog';
 import { routeLengthKm, snapToRoute } from '@/lib/geo';
@@ -18,6 +18,7 @@ import {
   positionAt,
   type SimVehicle,
 } from './mockSimulator';
+import { DEMO_ADMIN } from './demoAdmin';
 import type { Repository, Unsubscribe } from './repository';
 
 const SIMULATOR_TICK_MS = 3_000;
@@ -180,6 +181,10 @@ export function resetMockState(): void {
 }
 
 export const mockRepository: Repository = {
+  async isAdmin(uid) {
+    return USE_MOCK && uid === DEMO_ADMIN.uid;
+  },
+
   subscribeVehicles(onData, onError): Unsubscribe {
     vehicleListeners.add(onData);
     seedDemoVehicles();

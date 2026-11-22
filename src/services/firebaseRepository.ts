@@ -37,6 +37,11 @@ function db() {
 }
 
 export const firebaseRepository: Repository = {
+  async isAdmin(uid) {
+    const snapshot = await get(ref(db(), `admins/${uid}`));
+    return snapshot.val() === true;
+  },
+
   subscribeVehicles(onData, onError): Unsubscribe {
     return onValue(
       ref(db(), 'vehiculos_activos'),
