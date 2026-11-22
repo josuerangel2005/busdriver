@@ -3,6 +3,7 @@ import { useEffect } from 'react';
 import { StyleSheet, Text, View } from 'react-native';
 
 import { Button } from '@/components/Button';
+import { Icon } from '@/components/Icon';
 import { Placard } from '@/components/Placard';
 import { Screen } from '@/components/Screen';
 import { APP_NAME, USE_MOCK } from '@/constants/config';
@@ -28,9 +29,18 @@ export default function RoleSelectionScreen() {
   return (
     <Screen>
       <View style={styles.hero}>
-        <View style={styles.mark}>
+        <View
+          accessibilityElementsHidden
+          importantForAccessibility="no-hide-descendants"
+          style={styles.mark}
+        >
           <Placard tone="yellow">
-            <Text style={styles.markText}>RC</Text>
+            <View style={styles.markContent}>
+              <View style={styles.markIcon}>
+                <Icon name="bus-side" size={46} color={colors.onYellow} />
+              </View>
+              <Text allowFontScaling={false} style={styles.markText}>YA</Text>
+            </View>
           </Placard>
         </View>
         <Text style={styles.title}>{APP_NAME}</Text>
@@ -67,11 +77,24 @@ const styles = StyleSheet.create({
   mark: {
     alignItems: 'center',
   },
+  markContent: {
+    // Use the placard padding for the artwork without changing its outer size.
+    width: 42 + 2 * spacing.md,
+    height: 48 + 2 * spacing.md,
+    margin: -spacing.md,
+    alignItems: 'center',
+    justifyContent: 'center',
+    gap: spacing.xs,
+  },
+  markIcon: {
+    height: 32,
+    justifyContent: 'center',
+  },
   markText: {
-    color: colors.ink,
+    color: colors.onYellow,
     fontFamily: fontFamily.display,
-    fontSize: 44,
-    lineHeight: 48,
+    fontSize: 46,
+    lineHeight: 44,
     includeFontPadding: false,
   },
   title: {
