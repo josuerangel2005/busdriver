@@ -4,7 +4,8 @@ export const PILOT_ROUTE_ID = 'ruta-piloto-01';
 
 export const LOCATION_TASK_NAME = 'rastreo-background-location';
 
-export const UPDATE_INTERVAL_MS = 10_000;
+// Leave 2 seconds of headroom for Android location delivery delays under the HU-02 target.
+export const UPDATE_INTERVAL_MS = 8_000;
 
 export const STALE_THRESHOLD_MS = 30_000;
 

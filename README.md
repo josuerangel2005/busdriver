@@ -154,8 +154,10 @@ local `metricas.db` y se exporta como CSV desde la propia app.
    la duración, el intervalo máximo y el porcentaje de intervalos ≤ 10 s.
 6. Usa **Exportar pings CSV** para guardar la evidencia.
 
-Meta: cada intervalo entre pings exitosos debe ser ≤ 10 s (`PING_TARGET_MS`)
-durante al menos 30 minutos continuos.
+En Android, la app solicita ubicaciones cada 8 s (`UPDATE_INTERVAL_MS`) para
+dar margen a los retrasos de entrega. La meta no cambia: cada intervalo entre
+pings exitosos debe ser ≤ 10 s (`PING_TARGET_MS`) durante al menos 30 minutos
+continuos.
 
 ### Latencia del marcador (HU-05)
 

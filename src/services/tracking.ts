@@ -38,6 +38,8 @@ export async function startTracking(session: TrackingSession): Promise<void> {
     accuracy: Location.Accuracy.High,
     timeInterval: UPDATE_INTERVAL_MS,
     distanceInterval: 0,
+    deferredUpdatesInterval: 0,
+    deferredUpdatesDistance: 0,
     pausesUpdatesAutomatically: false,
     showsBackgroundLocationIndicator: true,
     activityType: Location.ActivityType.AutomotiveNavigation,

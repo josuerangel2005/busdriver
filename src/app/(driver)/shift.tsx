@@ -8,7 +8,7 @@ import { Button } from '@/components/Button';
 import { Icon } from '@/components/Icon';
 import { Placard } from '@/components/Placard';
 import { Screen } from '@/components/Screen';
-import { PILOT_ROUTE_ID, USE_MOCK } from '@/constants/config';
+import { PILOT_ROUTE_ID, UPDATE_INTERVAL_MS, USE_MOCK } from '@/constants/config';
 import { colors, font, fontFamily, spacing } from '@/constants/theme';
 import { PILOT_ROUTE } from '@/data/seed';
 import { clearFieldLogs, exportFieldLogCsv, listPings } from '@/lib/fieldLog';
@@ -219,7 +219,7 @@ export default function ShiftScreen() {
         <View style={styles.section}>
           <Text style={styles.sectionTitle}>{PILOT_ROUTE.nombre}</Text>
           <Text style={styles.muted}>
-            {PILOT_ROUTE.polyline.length} puntos de recorrido · actualización cada 10 s
+            {PILOT_ROUTE.polyline.length} puntos de recorrido · solicitud de ubicación cada {UPDATE_INTERVAL_MS / 1_000} s
           </Text>
         </View>
 

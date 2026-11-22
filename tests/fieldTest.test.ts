@@ -1,5 +1,6 @@
 import { describe, expect, it } from 'vitest';
 
+import { PING_TARGET_MS, UPDATE_INTERVAL_MS } from '@/constants/config';
 import {
   createLatencyTracker,
   etaErrorSeconds,
@@ -11,6 +12,12 @@ import {
 } from '@/lib/fieldTest';
 import type { EtaTrialLog, LatencyLog, PingLog } from '@/lib/fieldTest';
 import type { VehiculoActivo } from '@/types/models';
+
+describe('HU-02 tracking cadence', () => {
+  it('requests GPS updates sooner than the acceptance target', () => {
+    expect(UPDATE_INTERVAL_MS).toBeLessThan(PING_TARGET_MS);
+  });
+});
 
 describe('summarizePings', () => {
   it('computes intervals between successful pings ordered by GPS timestamp', () => {
