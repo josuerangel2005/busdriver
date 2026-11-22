@@ -62,6 +62,15 @@ describe('admin authentication', () => {
     expect(fakes.storage.get(STORAGE_KEYS.uid)).toBe('admin-uid');
   });
 
+  it('clears the sign-in loading flag when the email handler throws', async () => {
+    const failure = new Error('Rejected sign-in');
+    fakes.emailSignIn.mockRejectedValueOnce(failure);
+    const signingIn = state().signInAdmin('admin@example.test', 'secret');
+    expect(state().adminSigningIn).toBe(true);
+    await expect(signingIn).rejects.toBe(failure);
+    expect(state().adminSigningIn).toBe(false);
+  });
+
   it('signs out an authenticated account without admin permissions', async () => {
     fakes.isAdmin.mockResolvedValue(false);
     await expect(state().signInAdmin('user@example.test', 'secret')).rejects.toMatchObject({ code: 'admin/not-allowed' });

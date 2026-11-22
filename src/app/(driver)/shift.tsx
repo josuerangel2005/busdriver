@@ -56,7 +56,8 @@ export default function ShiftScreen() {
   const selectedId = active ? session?.rutaId : resolveRouteId(routeId, catalog);
   const route = ready ? (active ? findRoute : findActiveRoute)(catalog, selectedId) : undefined;
   const reverse = route && oppositeRoute(catalog, route);
-  const [working, setWorking] = useState(false);
+  const [shiftAction, setShiftAction] = useState<'start' | 'direction' | 'end' | null>(null);
+  const working = shiftAction !== null;
   const [pings, setPings] = useState(() => listPings());
   const [exportingPings, setExportingPings] = useState(false);
   const pingSummary = useMemo(() => summarizePings(pings), [pings]);
@@ -96,7 +97,7 @@ export default function ShiftScreen() {
       || shiftStartBlock(useConnection.getState().status)) {
       return;
     }
-    setWorking(true);
+    setShiftAction('start');
     try {
       if (!USE_MOCK) {
         const permissions = await requestLocationPermissions();
@@ -151,14 +152,14 @@ export default function ShiftScreen() {
     } catch (error) {
       Alert.alert('No se pudo iniciar el turno', (error as Error).message);
     } finally {
-      setWorking(false);
+      setShiftAction(null);
     }
   }
 
   async function handleChangeDirection() {
     if (!active || !session || !reverse || working || consentStatus !== 'accepted'
       || useConnection.getState().status === 'offline') return;
-    setWorking(true);
+    setShiftAction('direction');
     try {
       const next = await changeShiftDirection(async (nextSession) => {
         const publish = async () => {
@@ -177,7 +178,7 @@ export default function ShiftScreen() {
     } catch (error) {
       Alert.alert('No se pudo cambiar el sentido', (error as Error).message);
     } finally {
-      setWorking(false);
+      setShiftAction(null);
     }
   }
 
@@ -185,7 +186,7 @@ export default function ShiftScreen() {
     if (!uid) {
       return;
     }
-    setWorking(true);
+    setShiftAction('end');
     try {
       await endShift(
         {
@@ -201,7 +202,7 @@ export default function ShiftScreen() {
     } catch (error) {
       Alert.alert('No se pudo finalizar el turno', (error as Error).message);
     } finally {
-      setWorking(false);
+      setShiftAction(null);
     }
   }
 
@@ -306,7 +307,7 @@ export default function ShiftScreen() {
           ) : null}
           {active && reverse ? (
             <>
-              <Button label="Cambiar sentido" variant="secondary" disabled={working || offline || consentStatus !== 'accepted'} onPress={handleChangeDirection} />
+              <Button label="Cambiar sentido" loading={shiftAction === 'direction'} variant="secondary" disabled={working || offline || consentStatus !== 'accepted'} onPress={handleChangeDirection} />
               <Text style={styles.muted}>Hazlo solo con el vehículo detenido. Para cambiar de línea, finaliza el turno.</Text>
             </>
           ) : null}
@@ -381,8 +382,8 @@ export default function ShiftScreen() {
         <Button
           label={active ? 'Finalizar turno' : 'Iniciar turno'}
           variant={active ? 'danger' : 'primary'}
-          loading={working}
-          disabled={!active && (!route || Boolean(startBlock) || consentStatus !== 'accepted')}
+          loading={shiftAction === (active ? 'end' : 'start')}
+          disabled={working || (!active && (!route || Boolean(startBlock) || consentStatus !== 'accepted'))}
           onPress={active ? handleEndShift : handleBeginShift}
         />
       </View>

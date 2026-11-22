@@ -5,6 +5,7 @@ import { colors, font, radius, spacing } from '@/constants/theme';
 
 type Props = {
   label: string;
+  accessibilityLiveRegion?: 'polite';
   tone?: 'neutral' | 'success' | 'warning' | 'danger';
 };
 
@@ -34,13 +35,13 @@ const toneStyle: Record<
   },
 };
 
-export function Badge({ label, tone = 'neutral' }: Props) {
+export function Badge({ label, tone = 'neutral', accessibilityLiveRegion }: Props) {
   const current = toneStyle[tone];
 
   return (
     <View style={[styles.badge, { backgroundColor: current.backgroundColor }]}>
       <Icon color={current.color} name={current.icon} size={14} />
-      <Text style={[styles.label, { color: current.color }]}>{label}</Text>
+      <Text accessibilityLiveRegion={accessibilityLiveRegion} style={[styles.label, { color: current.color }]}>{label}</Text>
     </View>
   );
 }

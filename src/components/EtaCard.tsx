@@ -53,8 +53,16 @@ export function EtaCard({
       ? { icon: 'check', word: 'Pasada' }
       : { icon: 'bus', word: 'En ruta' };
 
+  const accessibilityLabel = [
+    favorite ? 'Mi paradero' : null,
+    parada.nombre,
+    state.word,
+    isFresh ? formatEta(etaSegundos) : null,
+    isFresh ? `a ${formatDistance(distanciaRestanteM)}` : null,
+  ].filter(Boolean).join(', ');
+
   return (
-    <Placard tone={tone} selected={selected} onPress={onPress}>
+    <Placard tone={tone} selected={selected} accessibilityLabel={accessibilityLabel} onPress={onPress}>
       {favorite && <FavoriteStopLabel color={foreground} />}
       <View style={styles.header}>
         <View style={styles.titleRow}>

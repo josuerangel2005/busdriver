@@ -29,11 +29,11 @@ export default function AdminScreen() {
   const { ready, uid, role, adminVerified, signOut } = useAuthStore();
   const catalog = useRouteCatalog((state) => state.catalog);
   const { bottom } = useSafeAreaInsets();
-  const [busy, setBusy] = useState<string | null>(null);
+  const [busy, setBusy] = useState<{ action: 'sign-out' } | { action: 'toggle'; id: string } | null>(null);
   const [error, setError] = useState<string | null>(null);
 
   async function leave() {
-    setBusy('sign-out');
+    setBusy({ action: 'sign-out' });
     setError(null);
     try {
       await signOut();
@@ -50,7 +50,7 @@ export default function AdminScreen() {
 
   async function setActive(id: string, active: boolean) {
     if (!useAuthStore.getState().adminVerified) return;
-    setBusy(id);
+    setBusy({ action: 'toggle', id });
     setError(null);
     try {
       await getRepository().setLineActive(id, active);
@@ -80,8 +80,8 @@ export default function AdminScreen() {
         <View style={styles.header}>
           <Text accessibilityRole="header" style={styles.title}>Administración</Text>
           <OfflineNotice message="Permisos sin verificar. Se comprobarán cuando vuelva la conexión." />
-          {error && <Badge label={error} tone="danger" />}
-          <Button label="Cerrar sesión" variant="secondary" loading={busy === 'sign-out'} onPress={leave} />
+          {error && <Badge label={error} tone="danger" accessibilityLiveRegion="polite" />}
+          <Button label="Cerrar sesión" variant="secondary" loading={busy?.action === 'sign-out'} onPress={leave} />
         </View>
       </Screen>
     );
@@ -97,7 +97,7 @@ export default function AdminScreen() {
           <View style={styles.header}>
             <Text accessibilityRole="header" style={styles.title}>Administración</Text>
             <Button label="Nueva línea" disabled={busy !== null} onPress={() => edit('nueva')} />
-            {error && <Badge label={error} tone="danger" />}
+            {error && <Badge label={error} tone="danger" accessibilityLiveRegion="polite" />}
           </View>
         )}
         ListEmptyComponent={<Badge label="No hay rutas para mostrar." />}
@@ -120,12 +120,13 @@ export default function AdminScreen() {
                   );
                 })}
                 <View style={styles.actions}>
-                  <Button label="Editar" variant="secondary" disabled={busy !== null} onPress={() => edit(item.id)} />
+                  <Button label="Editar" accessibilityLabel={`Editar ${item.name}`} variant="secondary" disabled={busy !== null} onPress={() => edit(item.id)} />
                   <Button
                     label={active ? 'Desactivar línea' : 'Activar línea'}
+                    accessibilityLabel={`${active ? 'Desactivar línea' : 'Activar línea'}: ${item.name}`}
                     variant={active ? 'dangerOutline' : 'secondary'}
                     disabled={busy !== null}
-                    loading={busy === item.id}
+                    loading={busy?.action === 'toggle' && busy.id === item.id}
                     onPress={() => confirm(item.id, item.name, !active)}
                   />
                 </View>
@@ -134,7 +135,7 @@ export default function AdminScreen() {
           );
         }}
         ListFooterComponent={(
-          <Button label="Cerrar sesión" variant="secondary" loading={busy === 'sign-out'} disabled={busy !== null} onPress={() => void leave()} />
+          <Button label="Cerrar sesión" variant="secondary" loading={busy?.action === 'sign-out'} disabled={busy !== null} onPress={() => void leave()} />
         )}
       />
     </Screen>

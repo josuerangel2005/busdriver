@@ -1,6 +1,6 @@
 import { Redirect, router, useLocalSearchParams } from 'expo-router';
 import { useEffect, useRef, useState, useSyncExternalStore } from 'react';
-import { Alert, Pressable, ScrollView, StyleSheet, Text, TextInput, View } from 'react-native';
+import { AccessibilityInfo, Alert, Pressable, ScrollView, StyleSheet, Text, TextInput, View } from 'react-native';
 import { useSafeAreaInsets } from 'react-native-safe-area-context';
 
 import { AdminRouteMap } from '@/components/AdminRouteMap';
@@ -92,7 +92,8 @@ function LineEditor({ ida }: { ida?: Ruta }) {
   const [notice, setNotice] = useState<Notice | null>(null);
   const [saveError, setSaveError] = useState<string | null>(null);
   const [busy, setBusy] = useState<'save' | 'adjust' | null>(null);
-  const locked = busy !== null;
+  const [saveConfirmed, setSaveConfirmed] = useState(false);
+  const locked = busy !== null || saveConfirmed;
   const waitingForCatalog = catalog.source !== 'remote';
   const offline = useSyncExternalStore(subscribeToConnectivity, isOffline, () => false);
   const lineId = ida?.linea_id;
@@ -181,6 +182,8 @@ function LineEditor({ ida }: { ida?: Ruta }) {
       setNotice(result.adjusted
         ? { tone: 'success', label: 'Trazado ajustado a las calles.' }
         : { tone: 'warning', label: OSRM_FALLBACK });
+    } catch {
+      setNotice({ tone: 'warning', label: OSRM_FALLBACK });
     } finally {
       setBusy(null);
     }
@@ -212,13 +215,17 @@ function LineEditor({ ida }: { ida?: Ruta }) {
     try {
       const previousStops = id === lineId ? [...stopsFor(catalog, idaId), ...stopsFor(catalog, vueltaId)] : [];
       await getRepository().saveLine(buildLineUpdate(draft, previousStops));
-      Alert.alert('Línea guardada', 'Se actualizaron los dos sentidos.', [
+      setSaveConfirmed(true);
+      const success = 'Línea guardada';
+      AccessibilityInfo.announceForAccessibility(success);
+      Alert.alert(success, 'Se actualizaron los dos sentidos.', [
         { text: 'Aceptar', onPress: () => router.canGoBack() ? router.back() : router.replace('/admin') },
       ], { cancelable: false });
     } catch (error) {
       setSaveError(error instanceof Error && /disconnected|client is offline|network error/i.test(error.message)
         ? OFFLINE_SAVE_MESSAGE
         : 'No pudimos guardar la línea. Inténtalo de nuevo.');
+    } finally {
       setBusy(null);
     }
   }
@@ -247,6 +254,7 @@ function LineEditor({ ida }: { ida?: Ruta }) {
           value={name}
           onChangeText={setName}
           editable={!locked}
+          accessibilityState={{ disabled: locked }}
           maxLength={80}
         />
         <View style={styles.segments} accessibilityRole="tablist">
@@ -256,6 +264,7 @@ function LineEditor({ ida }: { ida?: Ruta }) {
               <Pressable
                 key={value}
                 accessibilityRole="tab"
+                accessibilityLabel={value === 'trace' ? 'Trazado' : 'Paraderos'}
                 accessibilityState={{ selected, disabled: locked }}
                 disabled={locked}
                 onPress={() => selectMode(value)}
@@ -272,11 +281,9 @@ function LineEditor({ ida }: { ida?: Ruta }) {
             : waypoints ? 'Toca el mapa para agregar puntos en el orden del recorrido de ida.'
               : 'Puedes conservar el trazado actual o rehacerlo.'}
         </Text>
-        <AdminRouteMap polyline={polyline} markers={markers} mode={mode} onTap={tap} />
+        <AdminRouteMap disabled={locked || (mode === 'stops' && pendingStop !== null)} polyline={polyline} markers={markers} mode={mode} onTap={tap} />
         {notice && (
-          <View accessibilityLiveRegion="polite">
-            <Badge {...notice} />
-          </View>
+          <Badge {...notice} accessibilityLiveRegion="polite" />
         )}
         {mode === 'trace' ? (
           <Placard tone="plain">
@@ -327,6 +334,7 @@ function LineEditor({ ida }: { ida?: Ruta }) {
                     style={styles.input}
                     value={stop.name}
                     editable={!locked}
+                    accessibilityState={{ disabled: locked }}
                     maxLength={80}
                     onChangeText={(text) => setStops((current) => current.map((item) => item.key === stop.key ? { ...item, name: text } : item))}
                   />
@@ -337,14 +345,10 @@ function LineEditor({ ida }: { ida?: Ruta }) {
           </Placard>
         )}
         {(waitingForCatalog || offline) && (
-          <View accessibilityLiveRegion="polite">
-            <Badge tone="warning" label={offline ? OFFLINE_SAVE_MESSAGE : 'Esperando las rutas del servidor para guardar sin perder datos…'} />
-          </View>
+          <Badge accessibilityLiveRegion="polite" tone="warning" label={offline ? OFFLINE_SAVE_MESSAGE : 'Esperando las rutas del servidor para guardar sin perder datos…'} />
         )}
         {saveError && !waitingForCatalog && !offline && (
-          <View accessibilityLiveRegion="polite">
-            <Badge label={saveError} tone="danger" />
-          </View>
+          <Badge accessibilityLiveRegion="polite" label={saveError} tone="danger" />
         )}
         <Button label="Guardar" loading={busy === 'save'} disabled={locked || waitingForCatalog || offline || pendingStop !== null} onPress={() => void save()} />
         <Button label="Volver a las líneas" variant="secondary" disabled={locked} onPress={() => router.canGoBack() ? router.back() : router.replace('/admin')} />

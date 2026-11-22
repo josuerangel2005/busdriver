@@ -67,7 +67,9 @@ export function RouteSelector({ route, onSelect, disabled = false }: Props) {
                 <Pressable
                   key={item.linea_id}
                   accessibilityRole="button"
-                  accessibilityState={{ selected: item.linea_id === route.linea_id }}
+                  accessibilityLabel={item.linea_nombre}
+                  accessibilityState={{ selected: item.linea_id === route.linea_id, disabled }}
+                  disabled={disabled}
                   style={styles.control}
                   onPress={() => {
                     setLinePickerOpen(false);
@@ -78,7 +80,7 @@ export function RouteSelector({ route, onSelect, disabled = false }: Props) {
                 </Pressable>
               ))}
             </ScrollView>
-            <Pressable accessibilityRole="button" style={styles.control} onPress={() => setLinePickerOpen(false)}>
+            <Pressable accessibilityRole="button" accessibilityLabel="Cancelar" style={styles.control} onPress={() => setLinePickerOpen(false)}>
               <Text style={styles.label}>Cancelar</Text>
             </Pressable>
           </View>

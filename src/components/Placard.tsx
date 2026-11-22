@@ -9,6 +9,7 @@ type Props = PropsWithChildren<{
   tone: PlacardTone;
   onPress?: () => void;
   selected?: boolean;
+  accessibilityLabel?: string;
 }>;
 
 const toneStyles: Record<
@@ -23,7 +24,7 @@ const toneStyles: Record<
   plain: { backgroundColor: colors.surface, borderColor: colors.ink },
 };
 
-export function Placard({ tone, onPress, selected = false, children }: Props) {
+export function Placard({ tone, onPress, selected = false, accessibilityLabel, children }: Props) {
   const toneStyle = toneStyles[tone];
 
   if (!onPress) {
@@ -37,6 +38,7 @@ export function Placard({ tone, onPress, selected = false, children }: Props) {
   return (
     <Pressable
       accessibilityRole="button"
+      accessibilityLabel={accessibilityLabel}
       accessibilityState={{ selected }}
       onPress={onPress}
       style={({ pressed }) => [

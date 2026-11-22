@@ -23,14 +23,20 @@ export function PassengerStopCard({ stop, eta, favorite, offline, selected, high
   }
 
   const foreground = favorite ? (offline ? colors.onRed : colors.onYellow) : colors.inkMuted;
+  const status = offline ? 'Sin conexión' : 'Sin unidades';
   return (
-    <Placard tone={favorite ? (offline ? 'red' : 'yellow') : 'plain'} selected={selected} onPress={onPress}>
+    <Placard
+      tone={favorite ? (offline ? 'red' : 'yellow') : 'plain'}
+      selected={selected}
+      accessibilityLabel={favorite ? `Mi paradero, ${stop.nombre}, ${status}` : stop.nombre}
+      onPress={onPress}
+    >
       {favorite && <FavoriteStopLabel color={foreground} />}
       <Text style={[styles.name, { color: foreground }]}>{stop.orden}. {stop.nombre}</Text>
       {favorite && (
         <View style={styles.state}>
           <Icon name={offline ? 'signal-off' : 'minus-circle'} color={foreground} size={16} />
-          <Text style={[styles.name, { color: foreground }]}>{offline ? 'Sin conexión' : 'Sin unidades'}</Text>
+          <Text style={[styles.name, { color: foreground }]}>{status}</Text>
         </View>
       )}
     </Placard>

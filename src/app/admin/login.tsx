@@ -72,6 +72,7 @@ export default function AdminLoginScreen() {
               autoComplete="email"
               autoCorrect={false}
               editable={!adminSigningIn}
+              accessibilityState={{ disabled: adminSigningIn }}
               keyboardType="email-address"
               onChangeText={setEmail}
               style={styles.input}
@@ -85,6 +86,7 @@ export default function AdminLoginScreen() {
               autoCapitalize="none"
               autoComplete="current-password"
               editable={!adminSigningIn}
+              accessibilityState={{ disabled: adminSigningIn }}
               onChangeText={setPassword}
               onSubmitEditing={() => void submit()}
               returnKeyType="go"

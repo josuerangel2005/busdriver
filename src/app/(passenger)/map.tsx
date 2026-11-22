@@ -176,7 +176,7 @@ export default function PassengerMapScreen() {
                   <View>
                     <Badge label={status.label} tone={status.tone} />
                   </View>
-                  <Pressable accessibilityRole="button" onPress={handleChangeRole} style={styles.roleSwitchButton}>
+                  <Pressable accessibilityRole="button" accessibilityLabel="Cambiar rol" onPress={handleChangeRole} style={styles.roleSwitchButton}>
                     <Text style={styles.roleSwitch}>Cambiar rol</Text>
                   </Pressable>
                 </View>
@@ -185,8 +185,8 @@ export default function PassengerMapScreen() {
           </View>
         )}
         {cleanMode && status.banner && (
-          <View style={styles.offline} pointerEvents="none" accessibilityLiveRegion="polite">
-            <Badge label={status.label} tone={status.tone} />
+          <View style={styles.offline} pointerEvents="none">
+            <Badge accessibilityLiveRegion="polite" label={status.label} tone={status.tone} />
           </View>
         )}
         <Pressable
@@ -205,6 +205,8 @@ export default function PassengerMapScreen() {
             <Text style={styles.panelTitle}>Próximas paradas</Text>
             <Pressable
               accessibilityRole="button"
+              accessibilityLabel="Ver detalle del tiempo estimado"
+              accessibilityState={{ disabled: restoring || !routeId }}
               hitSlop={8}
               disabled={restoring || !routeId}
               onPress={() => router.push({ pathname: '/(passenger)/eta', params: { routeId } })}

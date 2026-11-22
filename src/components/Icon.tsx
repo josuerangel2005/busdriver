@@ -13,6 +13,8 @@ export function Icon({ name, size = 20, color }: Props) {
   return (
     <MaterialCommunityIcons
       accessible={false}
+      importantForAccessibility="no"
+      accessibilityElementsHidden
       color={color}
       name={name}
       size={size}

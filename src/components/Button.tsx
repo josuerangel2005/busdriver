@@ -4,6 +4,7 @@ import { colors, font, radius, spacing } from '@/constants/theme';
 
 type Props = {
   label: string;
+  accessibilityLabel?: string;
   onPress: () => void;
   variant?: 'primary' | 'secondary' | 'danger' | 'dangerOutline';
   disabled?: boolean;
@@ -12,12 +13,15 @@ type Props = {
 
 export function Button({
   label,
+  accessibilityLabel = label,
   onPress,
   variant = 'primary',
   disabled = false,
   loading = false,
 }: Props) {
   const isDisabled = disabled || loading;
+  // Keep busy=false explicit so Android rebuilds the content description.
+  const accessibilityState = { disabled: isDisabled, busy: loading };
 
   const labelColor =
     variant === 'secondary' || variant === 'dangerOutline'
@@ -29,7 +33,8 @@ export function Button({
   return (
     <Pressable
       accessibilityRole="button"
-      accessibilityState={{ disabled: isDisabled, busy: loading }}
+      accessibilityLabel={accessibilityLabel}
+      accessibilityState={accessibilityState}
       disabled={isDisabled}
       onPress={onPress}
       style={({ pressed }) => [
@@ -40,7 +45,7 @@ export function Button({
       ]}
     >
       {loading ? (
-        <ActivityIndicator color={labelColor} />
+        <ActivityIndicator color={labelColor} importantForAccessibility="no" accessibilityElementsHidden />
       ) : (
         <Text style={[styles.label, { color: labelColor }]}>{label}</Text>
       )}

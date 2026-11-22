@@ -224,14 +224,14 @@ export default function PassengerEtaScreen() {
             label="Exportar latencias CSV"
             variant="secondary"
             loading={exportingField === 'latencias'}
-            disabled={latencyLogs.length === 0}
+            disabled={exportingField !== null || latencyLogs.length === 0}
             onPress={() => exportFieldCsv('latencias')}
           />
           <Button
             label="Exportar pruebas ETA CSV"
             variant="secondary"
             loading={exportingField === 'pruebas_eta'}
-            disabled={etaTrials.length === 0}
+            disabled={exportingField !== null || etaTrials.length === 0}
             onPress={() => exportFieldCsv('pruebas_eta')}
           />
         </View>

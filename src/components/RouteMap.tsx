@@ -86,6 +86,8 @@ export function RouteMap({
               <Pressable
                 accessibilityRole="button"
                 accessibilityLabel={favorite ? `${parada.nombre}, Mi paradero` : parada.nombre}
+                accessibilityState={{ selected: selectedStopId === parada.id, disabled: !onSelectStop }}
+                disabled={!onSelectStop}
                 onPress={() => onSelectStop?.(parada)}
                 style={styles.stopTarget}
               >

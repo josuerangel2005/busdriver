@@ -10,13 +10,14 @@ import type { LatLng } from '@/types/models';
 const DEFAULT_CENTER: [number, number] = [-72.5008, 7.898];
 
 type Props = {
+  disabled: boolean;
   polyline: LatLng[];
   markers: { id: number; point: LatLng }[];
   mode: 'trace' | 'stops';
   onTap(point: LatLng): void;
 };
 
-export function AdminRouteMap({ polyline, markers, mode, onTap }: Props) {
+export function AdminRouteMap({ disabled, polyline, markers, mode, onTap }: Props) {
   const [initialViewState] = useState(() => {
     const bounds = getRouteBounds(polyline);
     return bounds ? { bounds, padding: { top: spacing.xl, bottom: spacing.xl, left: spacing.xl, right: spacing.xl } } : { center: DEFAULT_CENTER, zoom: 13 };
@@ -27,6 +28,9 @@ export function AdminRouteMap({ polyline, markers, mode, onTap }: Props) {
         mapStyle={MAP_STYLE_URL}
         style={styles.map}
         androidView="texture"
+        accessibilityRole="image"
+        accessibilityLabel={mode === 'trace' ? 'Mapa del trazado. Toca un lugar para agregar un punto.' : 'Mapa de paraderos. Toca un lugar para agregar un paradero.'}
+        accessibilityState={{ disabled }}
         onPress={({ nativeEvent: { lngLat: [longitude, latitude] } }) => onTap({ latitude, longitude })}
       >
         <Camera initialViewState={initialViewState} />
