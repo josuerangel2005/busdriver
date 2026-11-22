@@ -7,6 +7,19 @@ import { applyReleaseSigning } from '../plugins/withReleaseSigning';
 const gradle = readFileSync(new URL('./fixtures/expo-app.build.gradle', import.meta.url), 'utf8');
 
 describe('release signing Gradle transform', () => {
+  it.each([
+    ['tab indentation', '            signingConfig signingConfigs.debug', '\tsigningConfig signingConfigs.debug'],
+    ['missing debug signing line', '            signingConfig signingConfigs.debug', ''],
+  ])('throws when the release template drifts: %s', (_case, original, replacement) => {
+    const releaseStart = gradle.indexOf('        release {');
+    const signingLine = gradle.indexOf(original, releaseStart);
+    expect(releaseStart).toBeGreaterThanOrEqual(0);
+    expect(signingLine).toBeGreaterThan(releaseStart);
+    const drifted = gradle.slice(0, signingLine) + replacement + gradle.slice(signingLine + original.length);
+
+    expect(() => applyReleaseSigning(drifted)).toThrow('expected Expo signing blocks not found');
+  });
+
   it('inserts one signing config, leaves the debug build type alone and is idempotent', () => {
     const result = applyReleaseSigning(gradle);
     expect(result.split('    buildTypes {')[0].match(/^        release \{/gm)).toHaveLength(1);
