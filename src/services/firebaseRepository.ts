@@ -6,6 +6,7 @@ import {
   set,
   update,
 } from '@react-native-firebase/database';
+import { lineActiveUpdate } from '@/lib/adminLine';
 import type { DataSnapshot } from '@react-native-firebase/database';
 
 import type {
@@ -81,6 +82,14 @@ export const firebaseRepository: Repository = {
       );
       onData(paradas);
     });
+  },
+
+  async saveLine(changes) {
+    await update(ref(db()), changes);
+  },
+
+  async setLineActive(lineaId, active) {
+    await update(ref(db()), lineActiveUpdate(lineaId, active));
   },
 
   async publishVehicle(vehiculo): Promise<void> {

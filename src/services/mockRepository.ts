@@ -1,5 +1,6 @@
 import { DEFAULT_ROUTE_ID, USE_MOCK } from '@/constants/config';
 import { PARADAS, ROUTES } from '@/data/seed';
+import { lineRouteIds } from '@/lib/adminLine';
 import { bundledCatalog, findRoute } from '@/lib/routeCatalog';
 import { routeLengthKm, snapToRoute } from '@/lib/geo';
 import type {
@@ -31,6 +32,22 @@ type Listener<T> = (value: T) => void;
 const vehicles = new Map<string, VehiculoActivo>();
 const consents = new Map<string, Consentimiento>();
 const metrics = new Map<string, MetricaEspera>();
+const routes = new Map(ROUTES.map((route) => [route.id, route]));
+const stops = new Map(PARADAS.map((stop) => [stop.id, stop]));
+const routeListeners = new Set<Listener<Ruta[]>>();
+const stopListeners = new Set<Listener<Parada[]>>();
+
+function subscribeCatalog<T>(records: Map<string, T>, listeners: Set<Listener<T[]>>, receive: Listener<T[]>): Unsubscribe {
+  listeners.add(receive);
+  receive([...records.values()]);
+  return () => { listeners.delete(receive); };
+}
+
+function emitRoutes() {
+  const snapshot = [...routes.values()];
+  routeListeners.forEach((receive) => receive(snapshot));
+}
+
 const vehicleListeners = new Set<Listener<VehiculoActivo[]>>();
 const simVehicles = new Map<string, SimVehicle>();
 
@@ -82,7 +99,7 @@ function tick() {
       continue;
     }
 
-    const route = findRoute(bundledCatalog, simVehicle.rutaId);
+    const route = routes.get(simVehicle.rutaId);
     if (!route) continue;
 
     const advanced = isDemoVehicle(vehiculoId)
@@ -96,7 +113,7 @@ function tick() {
         };
     simVehicles.set(vehiculoId, advanced);
 
-    const position = positionAt(findRoute(bundledCatalog, advanced.rutaId)!, advanced.progressKm);
+    const position = positionAt(routes.get(advanced.rutaId) ?? route, advanced.progressKm);
     vehicles.set(vehiculoId, {
       ...current,
       ruta_activa: advanced.rutaId,
@@ -155,7 +172,7 @@ function seedDemoVehicles() {
 }
 
 function registerDriverVehicle(vehiculo: VehiculoActivo) {
-  const route = findRoute(bundledCatalog, vehiculo.ruta_activa);
+  const route = routes.get(vehiculo.ruta_activa);
   if (!route) return;
   const snap = snapToRoute(route, {
     latitude: vehiculo.lat,
@@ -175,6 +192,12 @@ export function resetMockState(): void {
   consents.clear();
   metrics.clear();
   vehicleListeners.clear();
+  routeListeners.clear();
+  stopListeners.clear();
+  routes.clear();
+  stops.clear();
+  ROUTES.forEach((route) => routes.set(route.id, route));
+  PARADAS.forEach((stop) => stops.set(stop.id, stop));
   simVehicles.clear();
   simulatorStartedAt = null;
   demoSeeded = false;
@@ -203,23 +226,48 @@ export const mockRepository: Repository = {
   },
 
   subscribeRoutes(onData): Unsubscribe {
-    onData(ROUTES);
-    return () => undefined;
+    return subscribeCatalog(routes, routeListeners, onData);
   },
 
   subscribeAllStops(onData): Unsubscribe {
-    onData(PARADAS);
-    return () => undefined;
+    return subscribeCatalog(stops, stopListeners, onData);
   },
 
   subscribeRoute(routeId, onData): Unsubscribe {
-    onData(findRoute(bundledCatalog, routeId) ?? null);
-    return () => undefined;
+    return subscribeCatalog(routes, routeListeners, () => onData(routes.get(routeId) ?? null));
   },
 
   subscribeStops(routeId, onData): Unsubscribe {
-    onData(PARADAS.filter((parada) => parada.ruta_id === routeId));
-    return () => undefined;
+    return subscribeCatalog(stops, stopListeners, (snapshot) => onData(snapshot.filter((stop) => stop.ruta_id === routeId)));
+  },
+
+  async saveLine(changes) {
+    for (const path of Object.keys(changes)) {
+      if (path.startsWith('rutas/')) {
+        const routePath = path as `rutas/${string}`;
+        const route = changes[routePath];
+        const id = path.slice('rutas/'.length);
+        if (route) routes.set(id, { ...route, id });
+      } else if (path.startsWith('paradas/')) {
+        const stopPath = path as `paradas/${string}`;
+        const stop = changes[stopPath];
+        const id = path.slice('paradas/'.length);
+        if (stop === null) stops.delete(id);
+        else if (stop) stops.set(id, { ...stop, id });
+      }
+    }
+    emitRoutes();
+    const snapshot = [...stops.values()];
+    stopListeners.forEach((receive) => receive(snapshot));
+  },
+
+  async setLineActive(lineaId, active) {
+    const directions = lineRouteIds(lineaId).map((id) => routes.get(id));
+    if (directions.some((route) => !route)) throw new Error('Line directions do not exist.');
+    for (const route of directions) {
+      if (route) routes.set(route.id, { ...route, activa: active });
+    }
+    emitRoutes();
   },
 
   async publishVehicle(vehiculo): Promise<void> {

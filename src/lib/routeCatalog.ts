@@ -21,6 +21,11 @@ export function findRoute(catalog: CatalogData, id: string | null | undefined): 
   return catalog.routes.find((route) => route.id === id);
 }
 
+export function findActiveRoute(catalog: CatalogData, id: string | null | undefined): Ruta | undefined {
+  const route = findRoute(catalog, id);
+  return route?.activa === false ? undefined : route;
+}
+
 export function activeRoutes(catalog: CatalogData): Ruta[] {
   return catalog.routes.filter((route) => route.activa !== false);
 }

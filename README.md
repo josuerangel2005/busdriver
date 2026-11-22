@@ -93,8 +93,29 @@ Las reglas de paradas consultan el catálogo resultante con
 `newData.parent().parent()`, no el estado anterior con `root`. Así una
 actualización multipath puede crear una ruta y sus paradas juntas, pero no
 escribir una parada que apunta a una ruta eliminada en esa misma operación.
-Las reglas permiten eliminar registros; para el catálogo de la app, es
-preferible desactivar las rutas para conservar las referencias existentes.
+### Administrar líneas
+
+1. En **Administración**, selecciona **Nueva línea** o **Editar**.
+2. En **Trazado**, toca el mapa en el orden del recorrido de ida. Opcionalmente,
+   selecciona **Ajustar a las calles**. Si solo necesitas editar paraderos de
+   una línea existente, conserva su trazado.
+3. En **Paraderos**, toca cerca del trazado y nombra al menos dos paraderos.
+   La app los ubica sobre la línea y los ordena según el recorrido.
+4. Selecciona **Guardar**. La app genera la vuelta en orden inverso y guarda los
+   dos sentidos y sus paraderos en una sola actualización.
+
+**Desactivar línea** oculta ambos sentidos a pasajeros y conductores sin
+eliminar rutas ni romper las referencias de turnos o métricas. Usa
+**Activar línea** para volver a mostrarlos.
+
+**Ajustar a las calles** envía los puntos al servicio público de OSRM y
+requiere internet. Si el servicio falla o no responde en 10 segundos, la app
+avisa y conserva los segmentos rectos. El modo demo guarda los cambios en
+memoria; al reiniciar la app se restaura el catálogo original.
+
+**Antes de usar el editor con Firebase:** vuelve a publicar
+`firebase/database.rules.json` para habilitar los puntos de trazado y
+aplicar las nuevas validaciones.
 
 ## Comandos
 
@@ -112,7 +133,7 @@ preferible desactivar las rutas para conservar las referencias existentes.
 ```
 src/
   app/                 rutas de expo-router
-    admin/             ingreso y catálogo de solo lectura
+    admin/             ingreso, catálogo y editor de líneas
     (driver)/          consentimiento y turno
     (passenger)/       mapa y detalle de ETA
   components/          Screen, Button, Badge, RouteMap, EtaCard

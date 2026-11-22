@@ -29,7 +29,8 @@ ETA is computed from the distance remaining along the route's own polyline and t
 
 - Expo SDK 58, React Native, TypeScript, expo-router, MapLibre with an OpenStreetMap style, zustand, expo-sqlite.
 - UI copy is Spanish (Colombia), neutral register.
-- One app with two roles chosen at start; role can be switched from both flows.
+- One app with three roles chosen at start: passenger, driver, and administrator.
+- Administrators can create, edit, activate, and deactivate transport lines and their stops. The editor generates the return direction automatically and does not delete lines.
 - Stop states that must stay distinguishable: approaching with ETA, passed, stale data (no update for more than 30 s), no vehicles.
 
 ## Brand Commitments

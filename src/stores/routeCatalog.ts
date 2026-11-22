@@ -11,8 +11,8 @@ export const useRouteCatalog = create<{ catalog: RouteCatalog; ready: boolean }>
 }));
 
 export function connectRouteCatalog(): () => void {
-  if (USE_MOCK) return () => undefined;
-  return startRouteCatalog(AsyncStorage, getRepository(), (catalog) => {
+  const storage = USE_MOCK ? { getItem: async () => null, setItem: async () => {} } : AsyncStorage;
+  return startRouteCatalog(storage, getRepository(), (catalog) => {
     useRouteCatalog.setState({ catalog, ready: true });
   });
 }

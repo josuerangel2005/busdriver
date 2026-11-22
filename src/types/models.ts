@@ -10,6 +10,7 @@ export type Ruta = {
   sentido: Sentido;
   activa?: boolean;
   polyline: LatLng[];
+  waypoints?: LatLng[];
 };
 
 export type Parada = {

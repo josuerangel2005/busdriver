@@ -1,3 +1,4 @@
+import type { LineUpdate } from '@/lib/adminLine';
 import { USE_MOCK } from '@/constants/config';
 import type {
   Consentimiento,
@@ -19,6 +20,8 @@ export type Repository = {
   subscribeAllStops(onData: (paradas: Parada[]) => void): Unsubscribe;
   subscribeRoute(routeId: string, onData: (ruta: Ruta | null) => void): Unsubscribe;
   subscribeStops(routeId: string, onData: (paradas: Parada[]) => void): Unsubscribe;
+  saveLine(update: LineUpdate): Promise<void>;
+  setLineActive(lineaId: string, active: boolean): Promise<void>;
   publishVehicle(vehiculo: VehiculoActivo): Promise<void>;
   setVehicleRoute(vehiculoId: string, routeId: string): Promise<void>;
   setService(vehiculoId: string, enServicio: boolean): Promise<void>;

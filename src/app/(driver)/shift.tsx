@@ -11,7 +11,7 @@ import { RouteSelector } from '@/components/RouteSelector';
 import { Screen } from '@/components/Screen';
 import { DEFAULT_ROUTE_ID, UPDATE_INTERVAL_MS, USE_MOCK } from '@/constants/config';
 import { colors, font, fontFamily, spacing } from '@/constants/theme';
-import { findRoute, oppositeRoute } from '@/lib/routeCatalog';
+import { findActiveRoute, findRoute, oppositeRoute } from '@/lib/routeCatalog';
 import { resolveRouteId } from '@/lib/routeSelection';
 import { clearFieldLogs, exportFieldLogCsv, listPings } from '@/lib/fieldLog';
 import { summarizePings } from '@/lib/fieldTest';
@@ -38,7 +38,7 @@ export default function ShiftScreen() {
   const [routeId, setRouteId] = useState(DEFAULT_ROUTE_ID);
   const { catalog, ready } = useRouteCatalog();
   const selectedId = active ? session?.rutaId : resolveRouteId(routeId, catalog);
-  const route = ready ? findRoute(catalog, selectedId) : undefined;
+  const route = ready ? (active ? findRoute : findActiveRoute)(catalog, selectedId) : undefined;
   const reverse = route && oppositeRoute(catalog, route);
   const [working, setWorking] = useState(false);
   const [pings, setPings] = useState(() => listPings());

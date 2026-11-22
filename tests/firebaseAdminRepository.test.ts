@@ -4,6 +4,7 @@ import { firebaseRepository } from '@/services/firebaseRepository';
 
 const db = vi.hoisted(() => ({
   ref: vi.fn((_database: string, path: string) => path),
+  update: vi.fn(async (_path: string, _changes: unknown) => {}),
   get: vi.fn(async (_path: string) => ({ val: (): unknown => null })),
 }));
 
@@ -11,6 +12,7 @@ vi.mock('@react-native-firebase/database', () => ({
   getDatabase: () => 'database',
   ref: db.ref,
   get: db.get,
+  update: db.update,
 }));
 
 it.each([
@@ -24,4 +26,21 @@ it.each([
   await expect(firebaseRepository.isAdmin('account-uid')).resolves.toBe(expected);
   expect(db.ref).toHaveBeenLastCalledWith('database', 'admins/account-uid');
   expect(db.get).toHaveBeenLastCalledWith('admins/account-uid');
+});
+
+
+it('uses exactly one root update for each admin operation', async () => {
+  db.update.mockClear();
+  const changes = { 'paradas/obsolete-id': null };
+  await firebaseRepository.saveLine(changes);
+  expect(db.ref).toHaveBeenLastCalledWith('database');
+  expect(db.update).toHaveBeenCalledExactlyOnceWith(undefined, changes);
+
+  db.update.mockClear();
+  await firebaseRepository.setLineActive('test', false);
+  expect(db.ref).toHaveBeenLastCalledWith('database');
+  expect(db.update).toHaveBeenCalledExactlyOnceWith(undefined, {
+    'rutas/test-ida/activa': false,
+    'rutas/test-vuelta/activa': false,
+  });
 });

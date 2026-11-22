@@ -1,11 +1,11 @@
 import { Camera, GeoJSONSource, Layer, Map, Marker } from '@maplibre/maplibre-react-native';
-import type { LngLatBounds } from '@maplibre/maplibre-react-native';
 import type { Feature, LineString } from 'geojson';
 import { Pressable, StyleSheet, Text, View } from 'react-native';
 
 import { MAP_STYLE_URL } from '@/constants/config';
 import { colors, fontFamily, radius, spacing } from '@/constants/theme';
 import { isStale } from '@/lib/eta';
+import { getRouteBounds } from '@/lib/geo';
 import type { Parada, Ruta, VehiculoActivo } from '@/types/models';
 
 type Props = {
@@ -20,20 +20,6 @@ type Props = {
 
 const DEFAULT_CENTER: [number, number] = [-72.5008, 7.898];
 const ROUTE_PADDING = { top: 180, right: 40, bottom: 40, left: 40 };
-
-function getRouteBounds(polyline: Ruta['polyline']): LngLatBounds | undefined {
-  if (polyline.length < 2) return undefined;
-
-  const { latitude, longitude } = polyline[0];
-  const bounds: LngLatBounds = [longitude, latitude, longitude, latitude];
-  for (const point of polyline) {
-    bounds[0] = Math.min(bounds[0], point.longitude);
-    bounds[1] = Math.min(bounds[1], point.latitude);
-    bounds[2] = Math.max(bounds[2], point.longitude);
-    bounds[3] = Math.max(bounds[3], point.latitude);
-  }
-  return bounds;
-}
 
 export function RouteMap({
   ruta,

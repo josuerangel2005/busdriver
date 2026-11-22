@@ -4,7 +4,7 @@ import { DEFAULT_ROUTE_ID } from '@/constants/config';
 import { vehiclesForRoute } from '@/lib/eta';
 import { logLatency } from '@/lib/fieldLog';
 import { createLatencyTracker } from '@/lib/fieldTest';
-import { findRoute, stopsFor } from '@/lib/routeCatalog';
+import { findActiveRoute, stopsFor } from '@/lib/routeCatalog';
 import { resolveRouteId } from '@/lib/routeSelection';
 import { getRepository } from '@/services/repository';
 import { useRouteCatalog } from '@/stores/routeCatalog';
@@ -26,7 +26,7 @@ export function useRouteData(routeId: string = DEFAULT_ROUTE_ID, lineId?: string
     });
   }, []);
 
-  const ruta = ready ? findRoute(catalog, effectiveId) ?? null : null;
+  const ruta = ready ? findActiveRoute(catalog, effectiveId) ?? null : null;
   const paradas = useMemo(() => stopsFor(catalog, ruta?.id), [catalog, ruta?.id]);
   const routeVehicles = useMemo(
     () => ruta ? vehiclesForRoute(vehiculos, ruta.id) : [],

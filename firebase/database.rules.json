@@ -11,14 +11,32 @@
     "rutas": {
       ".read": "auth != null",
       "$rutaId": {
-        ".write": "auth != null && root.child('admins').child(auth.uid).val() === true && auth.token.firebase.sign_in_provider === 'password'",
+        ".write": "auth != null && root.child('admins').child(auth.uid).val() === true && auth.token.firebase.sign_in_provider === 'password' && newData.exists()",
         ".validate": "newData.hasChildren(['nombre', 'linea_id', 'linea_nombre', 'sentido', 'polyline'])",
         "nombre": { ".validate": "newData.isString() && newData.val().length >= 1 && newData.val().length <= 120" },
-        "linea_id": { ".validate": "newData.isString()" },
-        "linea_nombre": { ".validate": "newData.isString()" },
+        "linea_id": { ".validate": "newData.isString() && newData.val().length > 0" },
+        "linea_nombre": { ".validate": "newData.isString() && newData.val().length > 0" },
         "sentido": { ".validate": "newData.val() === 'ida' || newData.val() === 'vuelta'" },
-        "polyline": { ".validate": "newData.hasChildren()" },
-        "activa": { ".validate": "newData.isBoolean()" }
+        "polyline": {
+          ".validate": "newData.hasChildren()",
+          "$i": {
+            ".validate": "newData.hasChildren(['latitude', 'longitude'])",
+            "latitude": { ".validate": "newData.isNumber() && newData.val() >= -90 && newData.val() <= 90" },
+            "longitude": { ".validate": "newData.isNumber() && newData.val() >= -180 && newData.val() <= 180" },
+            "$other": { ".validate": false }
+          }
+        },
+        "waypoints": {
+          ".validate": "newData.hasChildren()",
+          "$i": {
+            ".validate": "newData.hasChildren(['latitude', 'longitude'])",
+            "latitude": { ".validate": "newData.isNumber() && newData.val() >= -90 && newData.val() <= 90" },
+            "longitude": { ".validate": "newData.isNumber() && newData.val() >= -180 && newData.val() <= 180" },
+            "$other": { ".validate": false }
+          }
+        },
+        "activa": { ".validate": "newData.isBoolean()" },
+        "$other": { ".validate": false }
       }
     },
     "paradas": {
@@ -27,10 +45,11 @@
         ".write": "auth != null && root.child('admins').child(auth.uid).val() === true && auth.token.firebase.sign_in_provider === 'password'",
         ".validate": "newData.hasChildren(['ruta_id', 'nombre', 'lat', 'lng', 'orden']) && newData.child('ruta_id').isString() && newData.child('ruta_id').val().length > 0 && !newData.child('ruta_id').val().contains('/') && newData.parent().parent().child('rutas').child(newData.child('ruta_id').val()).exists()",
         "ruta_id": { ".validate": "newData.isString()" },
-        "nombre": { ".validate": "newData.isString()" },
+        "nombre": { ".validate": "newData.isString() && newData.val().length >= 1 && newData.val().length <= 80" },
         "lat": { ".validate": "newData.isNumber() && newData.val() >= -90 && newData.val() <= 90" },
         "lng": { ".validate": "newData.isNumber() && newData.val() >= -180 && newData.val() <= 180" },
-        "orden": { ".validate": "newData.isNumber() && newData.val() >= 1" }
+        "orden": { ".validate": "newData.isNumber() && newData.val() >= 1" },
+        "$other": { ".validate": false }
       }
     },
     "vehiculos_activos": {
