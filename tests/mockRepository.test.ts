@@ -169,3 +169,10 @@ describe('mockRepository consent', () => {
     await expect(mockRepository.getConsent('uid-unknown')).resolves.toBeNull();
   });
 });
+
+it('reports the simulated connection as online immediately', () => {
+  const receive = vi.fn();
+  const unsubscribe = mockRepository.subscribeConnection(receive);
+  expect(receive).toHaveBeenCalledExactlyOnceWith(true);
+  unsubscribe();
+});

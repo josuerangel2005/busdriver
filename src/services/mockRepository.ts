@@ -204,6 +204,11 @@ export function resetMockState(): void {
 }
 
 export const mockRepository: Repository = {
+  subscribeConnection(onChange) {
+    onChange(true);
+    return () => {};
+  },
+
   async isAdmin(uid) {
     return USE_MOCK && uid === DEMO_ADMIN.uid;
   },

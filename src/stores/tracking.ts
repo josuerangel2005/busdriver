@@ -18,8 +18,12 @@ export const useTrackingStore = create<TrackingState>((set) => ({
 
   async refresh() {
     set({ loading: true });
-    const [active, session] = await Promise.all([isTracking(), getTrackingSession()]);
-    set({ active, session, loading: false });
+    try {
+      const [active, session] = await Promise.all([isTracking(), getTrackingSession()]);
+      set({ active, session });
+    } finally {
+      set({ loading: false });
+    }
   },
 
   setActive(active, session) {

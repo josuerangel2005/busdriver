@@ -145,3 +145,30 @@ it('does not switch to an anonymous user while admin verification is pending', a
   }
   expect(state().role).toBe('admin');
 });
+
+it.each([true, false])('keeps a timed-out admin unverified and applies the reconnect answer (%s)', async (allowed) => {
+  vi.useFakeTimers();
+  try {
+    fakes.storage.set(STORAGE_KEYS.uid, 'admin-uid');
+    fakes.storage.set(STORAGE_KEYS.role, 'admin');
+    fakes.auth.currentUser = { uid: 'admin-uid', isAnonymous: false };
+    let started!: () => void;
+    const checking = new Promise<void>((resolve) => { started = resolve; });
+    fakes.isAdmin.mockImplementationOnce(() => new Promise(() => { started(); }));
+    const hydration = state().hydrate();
+    await checking;
+    await vi.advanceTimersByTimeAsync(5000);
+    expect(state()).toMatchObject({ role: 'admin', uid: 'admin-uid', ready: true, adminVerified: false });
+    await hydration;
+    expect(fakes.storage.get(STORAGE_KEYS.role)).toBe('admin');
+    expect(fakes.signOut).not.toHaveBeenCalled();
+
+    fakes.isAdmin.mockResolvedValueOnce(allowed);
+    await state().reverifyAdmin();
+    expect(state()).toMatchObject({ role: allowed ? 'admin' : null, adminVerified: allowed });
+    expect(fakes.storage.has(STORAGE_KEYS.role)).toBe(allowed);
+    expect(fakes.signOut).toHaveBeenCalledTimes(allowed ? 0 : 1);
+  } finally {
+    vi.useRealTimers();
+  }
+});

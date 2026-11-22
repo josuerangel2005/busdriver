@@ -1,13 +1,17 @@
+import AsyncStorage from '@react-native-async-storage/async-storage';
 import { useRouter } from 'expo-router';
 import { useState } from 'react';
 import { ScrollView, StyleSheet, Text, View } from 'react-native';
 
 import { Button } from '@/components/Button';
+import { OfflineNotice } from '@/components/OfflineNotice';
 import { Screen } from '@/components/Screen';
 import { CONSENT_VERSION } from '@/constants/config';
 import { colors, font, fontFamily, spacing } from '@/constants/theme';
+import { saveAcceptedConsent } from '@/services/consent';
 import { getRepository } from '@/services/repository';
 import { useAuthStore } from '@/stores/auth';
+import { useConnection } from '@/stores/connection';
 
 const SECTIONS = [
   {
@@ -31,20 +35,26 @@ const SECTIONS = [
 export default function ConsentScreen() {
   const router = useRouter();
   const uid = useAuthStore((state) => state.uid);
+  const offline = useConnection((state) => state.status === 'offline');
   const [saving, setSaving] = useState(false);
+  const [failed, setFailed] = useState(false);
 
   async function accept() {
-    if (!uid) {
-      return;
-    }
+    if (!uid || offline) return;
     setSaving(true);
-    await getRepository().saveConsent(uid, {
-      aceptado: true,
-      version: CONSENT_VERSION,
-      timestamp: Date.now(),
-    });
-    setSaving(false);
-    router.replace('/(driver)/shift');
+    setFailed(false);
+    try {
+      await saveAcceptedConsent(getRepository(), AsyncStorage, uid, {
+        aceptado: true,
+        version: CONSENT_VERSION,
+        timestamp: Date.now(),
+      });
+      router.replace('/(driver)/shift');
+    } catch {
+      setFailed(true);
+    } finally {
+      setSaving(false);
+    }
   }
 
   return (
@@ -67,7 +77,9 @@ export default function ConsentScreen() {
       </ScrollView>
 
       <View style={styles.footer}>
-        <Button label="Acepto y continúo" onPress={accept} loading={saving} />
+        {offline && <OfflineNotice message="Necesitas conexión para guardar el consentimiento." />}
+        {!offline && failed && <OfflineNotice message="No se pudo guardar el consentimiento. Inténtalo de nuevo." />}
+        <Button label="Acepto y continúo" onPress={accept} disabled={offline} loading={saving} />
       </View>
     </Screen>
   );
@@ -111,6 +123,7 @@ const styles = StyleSheet.create({
     lineHeight: 20,
   },
   footer: {
+    gap: spacing.sm,
     padding: spacing.md,
     backgroundColor: colors.surface,
   },

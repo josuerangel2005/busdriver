@@ -5,6 +5,7 @@ import { useSafeAreaInsets } from 'react-native-safe-area-context';
 
 import { Badge } from '@/components/Badge';
 import { Button } from '@/components/Button';
+import { OfflineNotice } from '@/components/OfflineNotice';
 import { Placard } from '@/components/Placard';
 import { Screen } from '@/components/Screen';
 import { colors, font, fontFamily, spacing } from '@/constants/theme';
@@ -25,7 +26,7 @@ function groupByLine(routes: Ruta[]) {
 }
 
 export default function AdminScreen() {
-  const { ready, uid, role, signOut } = useAuthStore();
+  const { ready, uid, role, adminVerified, signOut } = useAuthStore();
   const catalog = useRouteCatalog((state) => state.catalog);
   const { bottom } = useSafeAreaInsets();
   const [busy, setBusy] = useState<string | null>(null);
@@ -48,6 +49,7 @@ export default function AdminScreen() {
   }
 
   async function setActive(id: string, active: boolean) {
+    if (!useAuthStore.getState().adminVerified) return;
     setBusy(id);
     setError(null);
     try {
@@ -71,6 +73,19 @@ export default function AdminScreen() {
 
   if (!ready) return <Screen />;
   if (role !== 'admin' || !uid) return <Redirect href="/" />;
+
+  if (!adminVerified) {
+    return (
+      <Screen>
+        <View style={styles.header}>
+          <Text accessibilityRole="header" style={styles.title}>Administración</Text>
+          <OfflineNotice message="Permisos sin verificar. Se comprobarán cuando vuelva la conexión." />
+          {error && <Badge label={error} tone="danger" />}
+          <Button label="Cerrar sesión" variant="secondary" loading={busy === 'sign-out'} onPress={leave} />
+        </View>
+      </Screen>
+    );
+  }
 
   return (
     <Screen>

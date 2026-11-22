@@ -1,3 +1,4 @@
+import AsyncStorage from '@react-native-async-storage/async-storage';
 import * as Location from 'expo-location';
 import { useRouter } from 'expo-router';
 import { useEffect, useMemo, useState } from 'react';
@@ -6,6 +7,7 @@ import { useSafeAreaInsets } from 'react-native-safe-area-context';
 
 import { Button } from '@/components/Button';
 import { Icon } from '@/components/Icon';
+import { OfflineNotice } from '@/components/OfflineNotice';
 import { Placard } from '@/components/Placard';
 import { RouteSelector } from '@/components/RouteSelector';
 import { Screen } from '@/components/Screen';
@@ -16,6 +18,9 @@ import { resolveRouteId } from '@/lib/routeSelection';
 import { clearFieldLogs, exportFieldLogCsv, listPings } from '@/lib/fieldLog';
 import { summarizePings } from '@/lib/fieldTest';
 import { canSwitchRole } from '@/lib/roleSwitch';
+import { shiftStartBlock } from '@/lib/offlinePresentation';
+import { TimeoutError, withTimeout } from '@/lib/withTimeout';
+import { loadConsent } from '@/services/consent';
 import { getRepository } from '@/services/repository';
 import { beginShift, changeShiftDirection, endShift } from '@/services/shift';
 import {
@@ -25,6 +30,7 @@ import {
   updateTrackingDirection,
 } from '@/services/tracking';
 import { useAuthStore } from '@/stores/auth';
+import { useConnection } from '@/stores/connection';
 import { useRouteCatalog } from '@/stores/routeCatalog';
 import { useTrackingStore } from '@/stores/tracking';
 
@@ -34,7 +40,17 @@ export default function ShiftScreen() {
   const uid = useAuthStore((state) => state.uid);
   const role = useAuthStore((state) => state.role);
   const { active, session, loading, refresh, setActive } = useTrackingStore();
-  const [checking, setChecking] = useState(true);
+  const connection = useConnection((state) => state.status);
+  const offline = connection === 'offline';
+  const startBlock = shiftStartBlock(connection);
+  const [attempt, setAttempt] = useState(0);
+  const [consent, setConsent] = useState<{
+    uid: string;
+    attempt: number;
+    status: Awaited<ReturnType<typeof loadConsent>>;
+  }>();
+  const consentStatus = !uid ? 'unavailable'
+    : consent?.uid === uid && consent.attempt === attempt ? consent.status : 'checking';
   const [routeId, setRouteId] = useState(DEFAULT_ROUTE_ID);
   const { catalog, ready } = useRouteCatalog();
   const selectedId = active ? session?.rutaId : resolveRouteId(routeId, catalog);
@@ -51,35 +67,33 @@ export default function ShiftScreen() {
   }, []);
 
   useEffect(() => {
+    if (!uid) return;
+    void refresh().catch((error) => {
+      console.warn('[tracking] session refresh failed', error);
+    });
+  }, [uid, refresh]);
+
+  useEffect(() => {
+    if (!uid) return;
     let mounted = true;
-
-    async function checkConsent() {
-      if (!uid) {
-        return;
-      }
-      const consent = await getRepository().getConsent(uid);
-      if (!mounted) {
-        return;
-      }
-      if (!consent?.aceptado) {
-        router.replace('/(driver)/consent');
-        return;
-      }
-      await refresh();
-      if (mounted) {
-        setChecking(false);
-      }
-    }
-
-    void checkConsent();
-
+    void loadConsent(getRepository(), AsyncStorage, uid, useConnection.getState().status)
+      .then((status) => {
+        if (mounted) setConsent({ uid, attempt, status });
+      });
     return () => {
       mounted = false;
     };
-  }, [uid, refresh, router]);
+  }, [uid, attempt]);
+
+  useEffect(() => {
+    if (consentStatus === 'required' && !active && !loading) {
+      router.replace('/(driver)/consent');
+    }
+  }, [consentStatus, active, loading, router]);
 
   async function handleBeginShift() {
-    if (!uid || !route || active || working) {
+    if (!uid || !route || active || working || consentStatus !== 'accepted'
+      || shiftStartBlock(useConnection.getState().status)) {
       return;
     }
     setWorking(true);
@@ -115,7 +129,20 @@ export default function ShiftScreen() {
                   speed: position.coords.speed,
                 };
               },
-          publishVehicle: (vehiculo) => getRepository().publishVehicle(vehiculo),
+          publishVehicle: async (vehicle) => {
+            const repository = getRepository();
+            try {
+              await withTimeout(repository.publishVehicle(vehicle), 8000);
+            } catch (error) {
+              if (!(error instanceof TimeoutError)) throw error;
+              // The initial publish may still reach Firebase. Queue an inactive state
+              // after it, since local tracking was never started.
+              void repository.setService(vehicle.vehiculo_id, false).catch((failure) => {
+                console.warn('[shift] queued start cleanup failed', failure);
+              });
+              throw new Error('No se pudo confirmar la conexión. Inténtalo de nuevo.');
+            }
+          },
           startTracking: USE_MOCK ? async () => undefined : startTracking,
         },
         session,
@@ -129,11 +156,19 @@ export default function ShiftScreen() {
   }
 
   async function handleChangeDirection() {
-    if (!active || !session || !reverse || working) return;
+    if (!active || !session || !reverse || working || consentStatus !== 'accepted'
+      || useConnection.getState().status === 'offline') return;
     setWorking(true);
     try {
       const next = await changeShiftDirection(async (nextSession) => {
-        const publish = () => getRepository().setVehicleRoute(nextSession.vehiculoId, nextSession.rutaId);
+        const publish = async () => {
+          try {
+            await withTimeout(getRepository().setVehicleRoute(nextSession.vehiculoId, nextSession.rutaId), 2000);
+          } catch (error) {
+            // Keep local tracking aligned with a direction change still queued in Firebase.
+            if (!(error instanceof TimeoutError)) throw error;
+          }
+        };
         if (USE_MOCK) await publish();
         else await updateTrackingDirection(session, nextSession, publish);
       }, session, reverse.id, useRouteCatalog.getState().catalog);
@@ -154,13 +189,15 @@ export default function ShiftScreen() {
     try {
       await endShift(
         {
-          stopTracking: USE_MOCK ? async () => undefined : stopTracking,
+          stopTracking: async () => {
+            if (!USE_MOCK) await stopTracking();
+            setActive(false, null);
+          },
           setService: (vehiculoId, enServicio) =>
             getRepository().setService(vehiculoId, enServicio),
         },
         uid,
       );
-      setActive(false, null);
     } catch (error) {
       Alert.alert('No se pudo finalizar el turno', (error as Error).message);
     } finally {
@@ -210,7 +247,8 @@ export default function ShiftScreen() {
     );
   }
 
-  if (checking || loading) {
+  const waitingForConsent = !active && (consentStatus === 'checking' || consentStatus === 'required');
+  if (uid && (loading || waitingForConsent)) {
     return (
       <Screen>
         <View style={styles.center}>
@@ -220,10 +258,25 @@ export default function ShiftScreen() {
     );
   }
 
+  const consentNotice = (
+    <View style={styles.consentNotice}>
+      <OfflineNotice message="Sin conexión: no se pudo verificar el consentimiento." />
+      <Button label="Reintentar" variant="secondary" onPress={() => setAttempt(attempt + 1)} />
+    </View>
+  );
+
+  if (!active && consentStatus === 'unavailable') {
+    return <Screen>{consentNotice}</Screen>;
+  }
+
   return (
     <Screen padded={false}>
       <ScrollView contentContainerStyle={styles.content}>
         <Text style={styles.title}>Panel del conductor</Text>
+        {active && offline && (
+          <OfflineNotice message="Sin conexión: la ubicación se enviará cuando vuelva la señal." />
+        )}
+        {active && consentStatus === 'unavailable' && consentNotice}
 
         <Placard tone={active ? 'green' : 'passed'}>
           <View style={styles.stateRow}>
@@ -253,7 +306,7 @@ export default function ShiftScreen() {
           ) : null}
           {active && reverse ? (
             <>
-              <Button label="Cambiar sentido" variant="secondary" disabled={working} onPress={handleChangeDirection} />
+              <Button label="Cambiar sentido" variant="secondary" disabled={working || offline || consentStatus !== 'accepted'} onPress={handleChangeDirection} />
               <Text style={styles.muted}>Hazlo solo con el vehículo detenido. Para cambiar de línea, finaliza el turno.</Text>
             </>
           ) : null}
@@ -261,13 +314,13 @@ export default function ShiftScreen() {
 
         <View style={styles.section}>
           <Text style={styles.sectionTitle}>Transmisión</Text>
-          <Text style={styles.muted}>
+          {(!active || !offline) && <Text style={styles.muted}>
             {active
               ? USE_MOCK
                 ? 'Turno activo en modo simulado: tu buseta avanza sola por la ruta. No se usa el GPS ni se transmite tu ubicación.'
                 : 'La ubicación se está compartiendo en segundo plano. Puedes bloquear el teléfono.'
               : 'Inicia el turno para compartir tu ubicación con los pasajeros.'}
-          </Text>
+          </Text>}
           {USE_MOCK && !active ? (
             <Text style={styles.muted}>
               Modo simulado: la buseta avanza sola por la ruta, no se usa el GPS del teléfono.
@@ -324,11 +377,12 @@ export default function ShiftScreen() {
           { paddingBottom: Math.max(insets.bottom, spacing.md) },
         ]}
       >
+        {!active && startBlock && <OfflineNotice message={startBlock} />}
         <Button
           label={active ? 'Finalizar turno' : 'Iniciar turno'}
           variant={active ? 'danger' : 'primary'}
           loading={working}
-          disabled={!active && !route}
+          disabled={!active && (!route || Boolean(startBlock) || consentStatus !== 'accepted')}
           onPress={active ? handleEndShift : handleBeginShift}
         />
       </View>
@@ -400,7 +454,9 @@ const styles = StyleSheet.create({
     fontSize: font.body,
     lineHeight: 24,
   },
+  consentNotice: { gap: spacing.sm },
   footer: {
+    gap: spacing.sm,
     padding: spacing.md,
     backgroundColor: colors.ground,
     borderTopWidth: 2,

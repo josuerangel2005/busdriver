@@ -42,11 +42,12 @@ type Notice = { label: string; tone: 'danger' | 'warning' | 'success' | 'neutral
 
 export default function AdminLineScreen() {
   const { lineaId } = useLocalSearchParams<{ lineaId: string }>();
-  const { ready, uid, role } = useAuthStore();
+  const { ready, uid, role, adminVerified } = useAuthStore();
   const { catalog, ready: catalogReady } = useRouteCatalog();
 
   if (!ready) return <Screen />;
   if (role !== 'admin' || !uid) return <Redirect href="/" />;
+  if (!adminVerified) return <Redirect href="/admin" />;
   if (!catalogReady) return <Screen><Badge label="Cargando líneas…" /></Screen>;
   const ida = findRoute(catalog, lineRouteIds(lineaId)[0]);
   if (lineaId !== 'nueva' && !ida) {

@@ -11,6 +11,7 @@ import type {
 export type Unsubscribe = () => void;
 
 export type Repository = {
+  subscribeConnection(onChange: (online: boolean) => void): Unsubscribe;
   isAdmin(uid: string): Promise<boolean>;
   subscribeVehicles(
     onData: (vehiculos: VehiculoActivo[]) => void,

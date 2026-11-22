@@ -5,6 +5,7 @@ import * as TaskManager from 'expo-task-manager';
 import { LOCATION_TASK_NAME, STORAGE_KEYS } from '@/constants/config';
 import { logPing } from '@/lib/fieldLog';
 import { distanceBetweenM } from '@/lib/geo';
+import { withTimeout } from '@/lib/withTimeout';
 import { getRepository } from '@/services/repository';
 import { getTrackingSession, withTrackingWrite } from '@/services/tracking';
 import type { VehiculoActivo } from '@/types/models';
@@ -67,7 +68,7 @@ TaskManager.defineTask(LOCATION_TASK_NAME, async ({ data, error }) => {
     };
 
     try {
-      await getRepository().publishVehicle(vehiculo);
+      await withTimeout(getRepository().publishVehicle(vehiculo), 8000);
       logPing({
         vehiculo_id: vehiculo.vehiculo_id,
         timestamp_gps: timestamp,

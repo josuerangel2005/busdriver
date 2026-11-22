@@ -5,10 +5,13 @@ import { Alert, ScrollView, StyleSheet, Text, View } from 'react-native';
 import { Badge } from '@/components/Badge';
 import { Button } from '@/components/Button';
 import { EtaCard } from '@/components/EtaCard';
+import { OfflineNotice } from '@/components/OfflineNotice';
 import { Placard } from '@/components/Placard';
 import { Screen } from '@/components/Screen';
 import { colors, font, fontFamily, spacing } from '@/constants/theme';
 import { useNow, useRouteData } from '@/hooks/useRouteData';
+import { passengerStatus } from '@/lib/offlinePresentation';
+import { useConnection } from '@/stores/connection';
 import { computeBestStopEtas } from '@/lib/eta';
 import {
   exportFieldLogCsv,
@@ -34,6 +37,7 @@ type ActiveTrial = {
 
 export default function PassengerEtaScreen() {
   const router = useRouter();
+  const connection = useConnection((state) => state.status);
   const { routeId } = useLocalSearchParams<{ routeId?: string }>();
   const { ruta, paradas, vehiculos } = useRouteData(routeId);
   const now = useNow(5_000);
@@ -58,6 +62,7 @@ export default function PassengerEtaScreen() {
   );
 
   const hasVehicle = vehiculos.length > 0;
+  const status = passengerStatus(connection, hasVehicle, false, 'Vehículo en servicio');
 
   const etas = useMemo(() => {
     if (!ruta) {
@@ -141,10 +146,8 @@ export default function PassengerEtaScreen() {
         <View style={styles.header}>
           <Text style={styles.title}>Tiempo estimado</Text>
           {ruta ? <Text style={styles.hint}>{ruta.nombre} · Trazado aproximado</Text> : null}
-          <Badge
-            label={hasVehicle ? 'Vehículo en servicio' : 'Sin unidades'}
-            tone={hasVehicle ? 'success' : 'neutral'}
-          />
+          {status.banner && <OfflineNotice message={status.banner} />}
+          <Badge label={status.label} tone={status.tone} />
         </View>
 
         <Text style={styles.hint}>

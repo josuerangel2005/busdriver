@@ -38,6 +38,10 @@ function db() {
 }
 
 export const firebaseRepository: Repository = {
+  subscribeConnection(onChange) {
+    return onValue(ref(db(), '.info/connected'), (snapshot) => onChange(snapshot.val() === true));
+  },
+
   async isAdmin(uid) {
     const snapshot = await get(ref(db(), `admins/${uid}`));
     return snapshot.val() === true;

@@ -1,4 +1,5 @@
 import { bundledCatalog, findRoute, oppositeRoute, type CatalogData } from '@/lib/routeCatalog';
+import { TimeoutError, withTimeout } from '@/lib/withTimeout';
 import type { VehiculoActivo } from '@/types/models';
 
 import type { TrackingSession } from './tracking';
@@ -54,7 +55,12 @@ export async function endShift(
   vehiculoId: string,
 ): Promise<void> {
   await deps.stopTracking();
-  await deps.setService(vehiculoId, false);
+  try {
+    await withTimeout(deps.setService(vehiculoId, false), 2000);
+  } catch (error) {
+    if (!(error instanceof TimeoutError)) throw error;
+    // Tracking has stopped; Firebase can finish the queued write on reconnect.
+  }
 }
 
 export async function changeShiftDirection(

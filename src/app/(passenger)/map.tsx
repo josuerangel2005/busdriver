@@ -5,6 +5,7 @@ import { Pressable, ScrollView, StyleSheet, Text, View } from 'react-native';
 
 import { Badge } from '@/components/Badge';
 import { EtaCard } from '@/components/EtaCard';
+import { OfflineNotice } from '@/components/OfflineNotice';
 import { Placard } from '@/components/Placard';
 import { RouteMap } from '@/components/RouteMap';
 import { RouteSelector } from '@/components/RouteSelector';
@@ -12,12 +13,15 @@ import { Screen } from '@/components/Screen';
 import { DEFAULT_ROUTE_ID } from '@/constants/config';
 import { colors, font, fontFamily, spacing } from '@/constants/theme';
 import { useNow, useRouteData } from '@/hooks/useRouteData';
+import { passengerStatus } from '@/lib/offlinePresentation';
+import { useConnection } from '@/stores/connection';
 import { computeBestStopEtas, isStale } from '@/lib/eta';
 import { readPassengerSelection, savePassengerRoute, type RouteSelection } from '@/lib/routeSelection';
 import { useAuthStore } from '@/stores/auth';
 
 export default function PassengerMapScreen() {
   const router = useRouter();
+  const connection = useConnection((state) => state.status);
   const [selection, setSelection] = useState<RouteSelection>({ id: DEFAULT_ROUTE_ID });
   const [restoring, setRestoring] = useState(true);
   const [placardHeight, setPlacardHeight] = useState<number>();
@@ -62,6 +66,8 @@ export default function PassengerMapScreen() {
       isStale(vehiculo.timestamp_ultima_actualizacion, now),
     );
 
+  const status = passengerStatus(connection, hasVehicle, stale);
+
   return (
     <Screen padded={false}>
       <View style={styles.mapWrapper}>
@@ -92,13 +98,11 @@ export default function PassengerMapScreen() {
                   }}
                 />
               )}
+              {status.banner && <OfflineNotice message={status.banner} />}
               <View style={styles.metaRow}>
                 <Text style={styles.traceNote}>Trazado aproximado</Text>
                 <View>
-                  <Badge
-                    label={!hasVehicle ? 'Sin unidades' : stale ? 'Desactualizado' : 'En servicio'}
-                    tone={!hasVehicle ? 'neutral' : stale ? 'danger' : 'success'}
-                  />
+                  <Badge label={status.label} tone={status.tone} />
                 </View>
                 <Pressable accessibilityRole="button" onPress={handleChangeRole} style={styles.roleSwitchButton}>
                   <Text style={styles.roleSwitch}>Cambiar rol</Text>
@@ -127,7 +131,7 @@ export default function PassengerMapScreen() {
           contentContainerStyle={styles.list}
           showsVerticalScrollIndicator={false}
         >
-          {!hasVehicle ? (
+          {!hasVehicle && !status.banner ? (
             <Text style={styles.empty}>
               No hay vehículos en servicio. El tiempo estimado aparecerá cuando un
               conductor inicie su turno.

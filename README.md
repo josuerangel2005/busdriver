@@ -13,6 +13,17 @@ Stack: Expo SDK 58 + TypeScript + expo-router, MapLibre + OpenStreetMap,
 Firebase (Auth anónima + Realtime Database), expo-location + expo-task-manager,
 @turf/* para geometría, zustand, expo-sqlite para métricas locales.
 
+## Sin conexión
+
+- **Pasajero**: el mapa y los tiempos estimados muestran la última información disponible.
+  El aviso «Sin conexión» desaparece al reconectar.
+- **Conductor**: se necesita conexión para iniciar un turno. Puedes finalizar un turno
+  sin señal: el rastreo se detiene en el teléfono y el cambio puede llegar a Firebase al
+  reconectar. Si el consentimiento ya se verificó en este dispositivo, la app puede
+  consultarlo sin conexión.
+- **Administración**: si no se pueden verificar los permisos, la sesión se conserva
+  sin habilitar la edición hasta volver a verificarlos.
+
 ## Requisitos
 
 - Node 20+ y npm.

@@ -5,6 +5,7 @@ import { firebaseRepository } from '@/services/firebaseRepository';
 const db = vi.hoisted(() => ({
   ref: vi.fn((_database: string, path: string) => path),
   update: vi.fn(async (_path: string, _changes: unknown) => {}),
+  onValue: vi.fn<(path: string, receive: (snapshot: { val: () => unknown }) => void) => () => void>(),
   get: vi.fn(async (_path: string) => ({ val: (): unknown => null })),
 }));
 
@@ -12,6 +13,7 @@ vi.mock('@react-native-firebase/database', () => ({
   getDatabase: () => 'database',
   ref: db.ref,
   get: db.get,
+  onValue: db.onValue,
   update: db.update,
 }));
 
@@ -43,4 +45,17 @@ it('uses exactly one root update for each admin operation', async () => {
     'rutas/test-ida/activa': false,
     'rutas/test-vuelta/activa': false,
   });
+});
+
+it('subscribes to the local Firebase connection flag and returns the unsubscribe', () => {
+  const unsubscribe = vi.fn();
+  const receive = vi.fn();
+  db.onValue.mockReturnValueOnce(unsubscribe);
+  expect(firebaseRepository.subscribeConnection(receive)).toBe(unsubscribe);
+  expect(db.ref).toHaveBeenLastCalledWith('database', '.info/connected');
+  const [path, notify] = db.onValue.mock.lastCall!;
+  expect(path).toBe('.info/connected');
+  notify({ val: () => false });
+  notify({ val: () => true });
+  expect(receive.mock.calls).toEqual([[false], [true]]);
 });
