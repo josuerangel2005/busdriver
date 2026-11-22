@@ -139,6 +139,30 @@ aplicar las nuevas validaciones.
 | `npm run typecheck` | Verificación de tipos                     |
 | `npm run lint`      | ESLint                                    |
 
+## Firma de release
+
+Guarda el keystore de release fuera del repositorio. Define estas propiedades
+en `~/.gradle/gradle.properties` (también fuera del repositorio):
+
+- `BUSETA_RELEASE_STORE_FILE`: ruta absoluta al keystore.
+- `BUSETA_RELEASE_KEY_ALIAS`: alias de la clave.
+- `BUSETA_RELEASE_STORE_PASSWORD`: contraseña del keystore.
+- `BUSETA_RELEASE_KEY_PASSWORD`: contraseña de la clave.
+
+Mantén una copia de seguridad protegida del keystore y de las propiedades.
+Si falta una propiedad o el archivo, Gradle avisa y usa la firma de debug.
+Antes de distribuir el APK, verifica su firma y compara la huella SHA-256 del
+certificado con la de la clave de release. Sustituye `<ver>` por la versión
+instalada de Android Build Tools:
+
+```sh
+"$ANDROID_HOME/build-tools/<ver>/apksigner" verify --print-certs app-release.apk
+```
+
+**Antes de cambiar de firma:** un APK firmado con la clave de release no puede
+instalarse sobre uno firmado con la clave de debug. Exporta los CSV de las
+pruebas de campo antes de desinstalar la app; luego instala el nuevo APK.
+
 ## Estructura
 
 ```
